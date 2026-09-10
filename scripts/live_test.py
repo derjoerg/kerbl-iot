@@ -3,6 +3,10 @@
 import argparse
 import asyncio
 import os
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from kerbl_iot import DoorState, KerblIOT, KerblIOTApi
 

@@ -4,7 +4,11 @@ import argparse
 import asyncio
 from datetime import datetime
 import os
+from pathlib import Path
+import sys
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from kerbl_iot import KerblIOT, KerblIOTApi, SmartCoop
 
