@@ -30,8 +30,9 @@ async def print_smart_coop_update(coop: SmartCoop) -> None:
     print(
         f"[{datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S')}] "
         f"{coop.name}: door={door_state}, light={coop.light.current_dim_value}, "
-        f"feeding={coop.feeder.feeding_in_progress}, air={coop.air_temperature} C, "
-        f"water={coop.water_heater.water_temperature} C",
+        f"feeding={coop.feeder.feeding_in_progress}, air={coop.air_temperature}, "
+        f"water={coop.water_heater.water_temperature}, "
+        f"brightness={coop.brightness.current_brightness}",
         flush=True,
     )
 
