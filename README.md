@@ -23,9 +23,9 @@ async def main() -> None:
         await kerbl.connect_websocket()
 
         coop = kerbl.smart_coops[0]
-        print(coop.name, coop.air_temperature)
-        await coop.turn_light_on()
-        await coop.close_door()
+        print(coop.name, coop.air_temperature, coop.door.state)
+        await coop.light.turn_on()
+        await coop.door.close()
 
 
 asyncio.run(main())

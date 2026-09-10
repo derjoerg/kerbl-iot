@@ -155,7 +155,7 @@ class KerblIOTApiTest(unittest.IsolatedAsyncioTestCase):
         session.payload = {"logs": []}
         self.assertEqual(await api.get_smart_coop_logs("coop-1"), [])
         session.payload = {"success": True, "commandCount": 1}
-        result = await api._toggle_light("coop-1")
+        result = await api._press_light("coop-1")
 
         self.assertTrue(result.success)
         self.assertEqual(
@@ -178,8 +178,8 @@ class KerblIOTApiTest(unittest.IsolatedAsyncioTestCase):
         session = FakeSession({"success": True, "commandCount": 1})
         api = KerblIOTApi("test@example.com", "password")
         api._session = session  # type: ignore[assignment]
-        await api._toggle_feeder("coop-1")
-        await api._toggle_door("coop-1")
+        await api._press_feeder("coop-1")
+        await api._press_door("coop-1")
         await api._acknowledge_errors("coop-1", [256])
         with self.assertRaises(ValueError):
             await api._acknowledge_errors("coop-1", [])

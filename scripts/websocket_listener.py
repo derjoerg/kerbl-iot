@@ -26,12 +26,12 @@ def parse_args() -> argparse.Namespace:
 
 async def print_smart_coop_update(coop: SmartCoop) -> None:
     """Print the relevant values of one incoming SmartCoop update."""
-    door_state = coop.door_state.name if coop.door_state is not None else "UNKNOWN"
+    door_state = coop.door.state.name if coop.door.state is not None else "UNKNOWN"
     print(
         f"[{datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S')}] "
-        f"{coop.name}: door={door_state}, light={coop.light_dim_value}, "
-        f"feeding={coop.feeding_in_progress}, air={coop.air_temperature} C, "
-        f"water={coop.water_temperature} C, voltage={coop.current_voltage} V",
+        f"{coop.name}: door={door_state}, light={coop.light.current_dim_value}, "
+        f"feeding={coop.feeder.feeding_in_progress}, air={coop.air_temperature} C, "
+        f"water={coop.water_heater.water_temperature} C",
         flush=True,
     )
 

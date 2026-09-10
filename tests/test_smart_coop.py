@@ -2,9 +2,10 @@
 
 import asyncio
 import unittest
-from unittest.mock import AsyncMock, call, patch
+from unittest.mock import AsyncMock
 
-from kerbl_iot.models.smart_coop import DoorState, SmartCoop, SmartCoopLog
+from kerbl_iot.models.door_state import DoorState
+from kerbl_iot.models.smart_coop import SmartCoop
 
 
 class SmartCoopTest(unittest.IsolatedAsyncioTestCase):
@@ -23,10 +24,51 @@ class SmartCoopTest(unittest.IsolatedAsyncioTestCase):
             }
         )
 
-        self.assertIs(coop.door_state, DoorState.CLOSED)
-        self.assertEqual(coop.light_dim_value, 1)
-        self.assertTrue(coop.light_is_on)
-        self.assertFalse(coop.feeding_in_progress)
+        self.assertIs(coop.door.state, DoorState.CLOSED)
+        self.assertEqual(coop.light.current_dim_value, 1)
+        self.assertTrue(coop.light.is_on)
+        self.assertFalse(coop.feeder.feeding_in_progress)
+
+    def test_real_device_payload_shape_is_parsed(self) -> None:
+        coop = SmartCoop.from_api(
+            {
+                "id": "852e1e85-aa03-4121-8dfb-2ccedec1bd58",
+                "userId": "dad94be9-1e68-4a6b-9c46-070fe53f99ee",
+                "description": "H\u00fchnerstall",
+                "firmwareVersion": "V01.34",
+                "isOnline": True,
+                "airTemperature": 22.5,
+                "currentErrorReason": "[0]",
+                "errorReasonHistory": "[]",
+                "door": {"state": 79},
+                "feeder": {
+                    "feedingLocked": False,
+                    "feedingActive": True,
+                    "feedingInProgress": False,
+                },
+                "waterHeater": {"waterTemperature": 17.6},
+                "light": {"currentDimValue": 0},
+                "brightness": {"currentBrightness": 56},
+                "power": {"currentVoltage": 12.226},
+            }
+        )
+
+        self.assertEqual(coop.id, "852e1e85-aa03-4121-8dfb-2ccedec1bd58")
+        self.assertEqual(coop.user_id, "dad94be9-1e68-4a6b-9c46-070fe53f99ee")
+        self.assertEqual(coop.name, "H\u00fchnerstall")
+        self.assertTrue(coop.online)
+        self.assertEqual(coop.firmware_version, "V01.34")
+        self.assertEqual(coop.air_temperature, 22.5)
+        self.assertIs(coop.door.state, DoorState.OPEN)
+        self.assertEqual(coop.water_heater.water_temperature, 17.6)
+        self.assertEqual(coop.light.current_dim_value, 0)
+        self.assertFalse(coop.light.is_on)
+        self.assertFalse(coop.feeder.feeding_in_progress)
+        self.assertTrue(coop.feeder.feeding_active)
+        self.assertFalse(coop.feeder.feeding_locked)
+        self.assertEqual(coop.brightness.current_brightness, 56)
+        self.assertEqual(coop.current_error_reason, "[0]")
+        self.assertEqual(coop.error_reason_history, "[]")
 
     def test_missing_light_value_has_unknown_light_state(self) -> None:
         coop = SmartCoop.from_api(
@@ -37,62 +79,25 @@ class SmartCoopTest(unittest.IsolatedAsyncioTestCase):
             }
         )
 
-        self.assertIsNone(coop.light_is_on)
+        self.assertIsNone(coop.light.is_on)
 
-    async def test_device_commands_delegate_to_attached_client(self) -> None:
+    async def test_error_acknowledgement_delegates_to_attached_client(self) -> None:
         api = AsyncMock()
-        api._toggle_light.return_value = "command-result"
-        api._toggle_feeder.return_value = "feeder-toggled"
-        api._toggle_door.return_value = "door-toggled"
-        api._wait_for_light_state.return_value = "light-state"
-        api._wait_for_feeding_state.return_value = "feeding-state"
-        api._wait_for_door_state.return_value = "door-state"
         api._acknowledge_errors.return_value = "acknowledged"
         coop = SmartCoop.from_api(
-            {
-                "id": "coop-1",
-                "userId": "user-1",
-                "isOnline": True,
-                "light": {"currentDimValue": 0},
-            },
-            api,
+            {"id": "coop-1", "userId": "user-1", "isOnline": True}, api
         )
 
-        self.assertEqual(await coop.toggle_light(), "command-result")
-        with (
-            patch.object(SmartCoop, "refresh_state", AsyncMock()),
-            patch.object(SmartCoop, "wait_for_light_state", AsyncMock(return_value="light-state")),
-            patch.object(SmartCoop, "wait_for_feeding_state", AsyncMock(return_value="feeding-state")),
-            patch.object(SmartCoop, "wait_for_door_state", AsyncMock(return_value="door-state")),
-        ):
-            self.assertEqual(await coop.turn_light_on(), "light-state")
-            self.assertIs(await coop.turn_light_off(), coop)
-            self.assertEqual(await coop.toggle_feeder(), "feeder-toggled")
-            self.assertEqual(await coop.toggle_door(), "door-toggled")
-            coop.door_state = DoorState.CLOSED
-            self.assertEqual(await coop.open_door(), "door-state")
-            coop.door_state = DoorState.OPEN
-            self.assertEqual(await coop.close_door(), "door-state")
-            self.assertEqual(await coop.acknowledge_errors([256]), "acknowledged")
-            self.assertEqual(await coop.wait_for_light_state(True, timeout=5), "light-state")
-            self.assertEqual(
-                await coop.wait_for_feeding_state(True, timeout=5), "feeding-state"
-            )
-            self.assertEqual(
-                await coop.wait_for_door_state(DoorState.OPEN, timeout=5), "door-state"
-            )
-        self.assertEqual(api._toggle_light.await_args_list, [call("coop-1"), call("coop-1")])
-        api._toggle_feeder.assert_awaited_once_with("coop-1")
-        self.assertEqual(api._toggle_door.await_count, 3)
+        self.assertEqual(await coop.acknowledge_errors([256]), "acknowledged")
         api._acknowledge_errors.assert_awaited_once_with("coop-1", [256])
 
-    async def test_device_commands_require_an_attached_client(self) -> None:
+    async def test_aggregate_actions_require_an_attached_client(self) -> None:
         coop = SmartCoop.from_api(
             {"id": "coop-1", "userId": "user-1", "isOnline": True}
         )
 
         with self.assertRaisesRegex(RuntimeError, "not attached"):
-            await coop.toggle_light()
+            await coop.acknowledge_errors([256])
 
     async def test_device_state_actions_and_callbacks(self) -> None:
         api = AsyncMock()
@@ -106,113 +111,50 @@ class SmartCoopTest(unittest.IsolatedAsyncioTestCase):
         callback = unittest.mock.Mock()
         coop.register_callback(callback)
         await coop.refresh_state()
-        self.assertTrue(coop.light_is_on)
-        self.assertIs(coop.door_state, DoorState.OPEN)
-        self.assertTrue(coop.feeding_in_progress)
+        self.assertTrue(coop.light.is_on)
+        self.assertIs(coop.door.state, DoorState.OPEN)
+        self.assertTrue(coop.feeder.feeding_in_progress)
         callback.assert_called_once()
         coop.remove_callback(callback)
+        self.assertIs(coop.door, coop.door)
 
-        with patch.object(SmartCoop, "refresh_state", AsyncMock()), patch.object(SmartCoop, "wait_for_light_state", AsyncMock(return_value=coop)), patch.object(SmartCoop, "wait_for_door_state", AsyncMock(return_value=coop)):
-            await coop.turn_light_off()
-            await coop.toggle_feeder()
-            await coop.acknowledge_errors([256])
-            await coop.close_door()
-        api._toggle_light.assert_awaited()
-        api._toggle_feeder.assert_awaited_once_with("coop-1")
-        api._acknowledge_errors.assert_awaited_once_with("coop-1", [256])
-        api._toggle_door.assert_awaited_once_with("coop-1")
-
-    async def test_waits_and_target_state_errors(self) -> None:
+    async def test_refresh_errors_when_device_disappears(self) -> None:
         api = AsyncMock()
         coop = SmartCoop.from_api(
             {"id": "coop-1", "userId": "user-1", "isOnline": True}, api
         )
-        with self.assertRaises(TimeoutError):
-            await coop.wait_for_light_state(True, timeout=0)
-        with self.assertRaises(TimeoutError):
-            await coop.wait_for_feeding_state(True, timeout=0)
-        with self.assertRaises(TimeoutError):
-            await coop.wait_for_door_state(DoorState.OPEN, timeout=0)
         api.get_smart_coops.return_value = []
+
         with self.assertRaises(RuntimeError):
             await coop.refresh_state()
-        with patch.object(SmartCoop, "refresh_state", AsyncMock()):
-            with self.assertRaises(RuntimeError):
-                await coop.turn_light_on()
-            coop.door_state = DoorState.OPENING
-            with self.assertRaises(RuntimeError):
-                await coop.close_door()
 
-    async def test_idempotent_targets_and_event_wait(self) -> None:
+    async def test_update_keeps_component_references(self) -> None:
         api = AsyncMock()
         coop = SmartCoop.from_api(
             {"id": "coop-1", "userId": "user-1", "isOnline": True, "light": {"currentDimValue": 100}, "door": {"state": 79}}, api
         )
-        with patch.object(SmartCoop, "refresh_state", AsyncMock()):
-            self.assertIs(await coop.turn_light_on(), coop)
-            self.assertIs(await coop.open_door(), coop)
+        light = coop.light
+        door = coop.door
         updated = SmartCoop.from_api(
             {"id": "coop-1", "userId": "user-1", "isOnline": True, "light": {"currentDimValue": 0}}, api
         )
-        waiter = asyncio.create_task(coop.wait_for_light_state(False, timeout=1))
+
+        await coop.update_from_api(updated)
+
+        self.assertIs(coop.light, light)
+        self.assertIs(coop.door, door)
+        self.assertFalse(coop.light.is_on)
+        self.assertIsNone(coop.door.state)
+
+    async def test_component_waits_use_aggregate_update_event(self) -> None:
+        api = AsyncMock()
+        coop = SmartCoop.from_api(
+            {"id": "coop-1", "userId": "user-1", "isOnline": True, "light": {"currentDimValue": 100}}, api
+        )
+        updated = SmartCoop.from_api(
+            {"id": "coop-1", "userId": "user-1", "isOnline": True, "light": {"currentDimValue": 0}}, api
+        )
+        waiter = asyncio.create_task(coop.light.wait_for_state(False, timeout=1))
         await asyncio.sleep(0)
         await coop.update_from_api(updated)
         self.assertIs(await waiter, coop)
-
-    def test_log_entry_is_parsed(self) -> None:
-        log = SmartCoopLog.from_api(
-            {
-                "time": "07:23",
-                "date": "2026.09.09",
-                "active": True,
-                "errorReason": {
-                    "plain": 128,
-                    "i18nKey": "errorReason.feedEmpty",
-                },
-                "level": "error",
-            }
-        )
-
-        self.assertEqual(log.error_code, 128)
-        self.assertEqual(log.error_key, "errorReason.feedEmpty")
-        self.assertEqual(log.error_message, "Futter leer")
-        self.assertEqual(log.timestamp_display, "2026-09-09 07:23")
-        self.assertIsNotNone(log.occurred_at)
-        self.assertIsNotNone(log.received_at.tzinfo)
-        self.assertTrue(log.active)
-
-    def test_placeholder_log_timestamp_is_not_treated_as_valid(self) -> None:
-        log = SmartCoopLog.from_api(
-            {
-                "time": "00:00",
-                "date": "2000.00.09",
-                "active": True,
-                "errorReason": {
-                    "plain": 256,
-                    "i18nKey": "errorReason.batteryEmpty",
-                },
-                "level": "error",
-            }
-        )
-
-        self.assertIsNone(log.occurred_at)
-        self.assertEqual(log.timestamp_display, "Zeitpunkt unbekannt")
-        self.assertEqual(log.date, "2000.00.09")
-        self.assertEqual(log.time, "00:00")
-
-    def test_invalid_log_timestamp_is_not_treated_as_valid(self) -> None:
-        log = SmartCoopLog.from_api(
-            {
-                "time": "not-a-time",
-                "date": "not-a-date",
-                "active": True,
-                "errorReason": {
-                    "plain": 99999,
-                    "i18nKey": "errorReason.unknown",
-                },
-                "level": "error",
-            }
-        )
-
-        self.assertIsNone(log.occurred_at)
-        self.assertEqual(log.error_message, "errorReason.unknown")

@@ -9,7 +9,17 @@ from .exceptions import (
 	KerblProtocolError,
 	KerblStateError,
 )
-from .models import CommandResult, DoorState, SmartCoop, SmartCoopLog
+from .models import (
+	CommandResult,
+	DoorState,
+	SmartCoop,
+	SmartCoopBrightness,
+	SmartCoopDoor,
+	SmartCoopFeeder,
+	SmartCoopLight,
+	SmartCoopLog,
+	SmartCoopWaterHeater,
+)
 
 __all__ = [
 	"CommandResult",
@@ -22,5 +32,10 @@ __all__ = [
 	"KerblProtocolError",
 	"KerblStateError",
 	"SmartCoop",
+	"SmartCoopBrightness",
+	"SmartCoopDoor",
+	"SmartCoopFeeder",
+	"SmartCoopLight",
 	"SmartCoopLog",
+	"SmartCoopWaterHeater",
 ]

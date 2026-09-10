@@ -172,18 +172,18 @@ class KerblIOTApi:
         payload = await self._request_json("GET", endpoint)
         return [SmartCoopLog.from_api(data) for data in payload.get("logs", [])]
 
-    async def _toggle_light(self, smart_coop_id: str) -> CommandResult:
-        """Toggle a SmartCoop light using its confirmed manual-control command."""
+    async def _press_light(self, smart_coop_id: str) -> CommandResult:
+        """Press a SmartCoop light using its confirmed manual-control command."""
         endpoint = f"device/smart-coop/{smart_coop_id}/command/lightControl"
         return CommandResult.from_api(await self._request_json("PATCH", endpoint, {"value": 1}))
 
-    async def _toggle_feeder(self, smart_coop_id: str) -> CommandResult:
-        """Toggle a SmartCoop feeder using its confirmed manual-control command."""
+    async def _press_feeder(self, smart_coop_id: str) -> CommandResult:
+        """Press a SmartCoop feeder using its confirmed manual-control command."""
         endpoint = f"device/smart-coop/{smart_coop_id}/command/feederControl"
         return CommandResult.from_api(await self._request_json("PATCH", endpoint, {"value": 1}))
 
-    async def _toggle_door(self, smart_coop_id: str) -> CommandResult:
-        """Toggle a SmartCoop door using its confirmed manual-control command."""
+    async def _press_door(self, smart_coop_id: str) -> CommandResult:
+        """Press a SmartCoop door using its confirmed manual-control command."""
         endpoint = f"device/smart-coop/{smart_coop_id}/command/doorControl"
         return CommandResult.from_api(await self._request_json("PATCH", endpoint, {"value": 1}))
 

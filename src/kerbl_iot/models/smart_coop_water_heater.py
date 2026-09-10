@@ -1,0 +1,39 @@
+"""Water heater component model for SmartCoop devices."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any
+
+
+@dataclass(slots=True)
+class SmartCoopWaterHeater:
+    """Water heater component values from a SmartCoop payload."""
+
+    id: str | None
+    water_temperature: float | None
+    water_sensor_state: bool | None
+    has_water_sensor: bool | None
+
+    @property
+    def has_temperature_reading(self) -> bool:
+        """Return whether the water heater reports a water temperature."""
+        return self.water_temperature is not None
+
+    def update_from_api(self, water_heater: "SmartCoopWaterHeater") -> None:
+        """Update this component in place from a parsed API component."""
+        for attribute in (
+            "id", "water_temperature", "water_sensor_state", "has_water_sensor",
+        ):
+            setattr(self, attribute, getattr(water_heater, attribute))
+
+    @classmethod
+    def from_api(cls, data: dict[str, Any] | None) -> "SmartCoopWaterHeater":
+        """Create a water heater component from the nested ``waterHeater`` payload."""
+        data = data or {}
+        return cls(
+            id=data.get("id"),
+            water_temperature=data.get("waterTemperature"),
+            water_sensor_state=data.get("waterSensorState"),
+            has_water_sensor=data.get("hasWaterSensor"),
+        )

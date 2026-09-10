@@ -106,14 +106,14 @@ async def main() -> None:
                 coops = kerbl.smart_coops
             else:
                 if args.toggle_door:
-                    if selected_coop.door_state is DoorState.CLOSED:
+                    if selected_coop.door.state is DoorState.CLOSED:
                         expected_door_state = DoorState.OPENING
-                    elif selected_coop.door_state is DoorState.OPEN:
+                    elif selected_coop.door.state is DoorState.OPEN:
                         expected_door_state = DoorState.CLOSING
                     else:
                         state_name = (
-                            selected_coop.door_state.name
-                            if selected_coop.door_state is not None
+                            selected_coop.door.state.name
+                            if selected_coop.door.state is not None
                             else "unknown"
                         )
                         raise SystemExit(
@@ -129,42 +129,42 @@ async def main() -> None:
                 )
                 print(f"Sending {command_name}-toggle command for: {selected_coop.name}")
                 result = (
-                    await selected_coop.toggle_light()
+                    await selected_coop.light.press()
                     if args.toggle_light
-                    else await selected_coop.toggle_door()
+                    else await selected_coop.door.press()
                     if args.toggle_door
-                    else await selected_coop.toggle_feeder()
+                    else await selected_coop.feeder.press()
                 )
                 if not result.success:
                     raise SystemExit(f"The {command_name}-toggle command was not accepted.")
                 print(f"{command_name.capitalize()}-toggle command accepted; command count: {result.command_count}")
-                if args.toggle_light and selected_coop.light_is_on is None:
+                if args.toggle_light and selected_coop.light.is_on is None:
                     print("The current light state is unavailable; cannot verify the toggle.")
-                elif args.toggle_feeder and selected_coop.feeding_in_progress is None:
+                elif args.toggle_feeder and selected_coop.feeder.feeding_in_progress is None:
                     print("The current feeding state is unavailable; cannot verify the toggle.")
                 else:
                     expected_state = (
-                        not selected_coop.light_is_on
+                        not selected_coop.light.is_on
                         if args.toggle_light
                         else expected_door_state
                         if args.toggle_door
-                        else not selected_coop.feeding_in_progress
+                        else not selected_coop.feeder.feeding_in_progress
                     )
                     print(f"Waiting for the SmartCoop to report the new {command_name} state...")
                     confirmed_coop = (
-                        await selected_coop.wait_for_light_state(is_on=expected_state)
+                        await selected_coop.light.wait_for_state(is_on=expected_state)
                         if args.toggle_light
-                        else await selected_coop.wait_for_door_state(state=expected_state)
+                        else await selected_coop.door.wait_for_state(state=expected_state)
                         if args.toggle_door
-                        else await selected_coop.wait_for_feeding_state(
+                        else await selected_coop.feeder.wait_for_state(
                             in_progress=expected_state
                         )
                     )
-                    state_name = "on" if args.toggle_light and confirmed_coop.light_is_on else "off"
+                    state_name = "on" if args.toggle_light and confirmed_coop.light.is_on else "off"
                     if args.toggle_door:
-                        state_name = confirmed_coop.door_state.name
+                        state_name = confirmed_coop.door.state.name
                     elif args.toggle_feeder:
-                        state_name = "active" if confirmed_coop.feeding_in_progress else "inactive"
+                        state_name = "active" if confirmed_coop.feeder.feeding_in_progress else "inactive"
                     print(f"SmartCoop confirmed the {command_name} is {state_name}.")
                 await kerbl.load()
                 coops = kerbl.smart_coops
@@ -190,16 +190,15 @@ async def main() -> None:
         print(f"Name:             {coop.name}")
         print(f"Online:           {coop.online}")
         print(f"Air temperature:  {coop.air_temperature} C")
-        print(f"Water temperature:{coop.water_temperature} C")
-        print(f"Light dim value:  {coop.light_dim_value}")
-        print(f"Feeding in progress: {coop.feeding_in_progress}")
-        print(f"Feeding active:   {coop.feeding_active}")
-        print(f"Feeding locked:   {coop.feeding_locked}")
-        print(f"Outdoor brightness:{coop.current_brightness}")
-        print(f"Voltage:          {coop.current_voltage} V")
+        print(f"Water temperature:{coop.water_heater.water_temperature} C")
+        print(f"Light dim value:  {coop.light.current_dim_value}")
+        print(f"Feeding in progress: {coop.feeder.feeding_in_progress}")
+        print(f"Feeding active:   {coop.feeder.feeding_active}")
+        print(f"Feeding locked:   {coop.feeder.feeding_locked}")
+        print(f"Outdoor brightness:{coop.brightness.current_brightness}")
         print(
             "Door state:       "
-            f"{coop.door_state.name if coop.door_state is not None else 'unknown'}"
+            f"{coop.door.state.name if coop.door.state is not None else 'unknown'}"
         )
 
 
