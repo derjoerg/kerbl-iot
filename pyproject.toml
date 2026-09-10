@@ -1,0 +1,55 @@
+[build-system]
+requires = ["hatchling>=1.31,<1.32"]
+build-backend = "hatchling.build"
+
+[project]
+name = "kerbl-iot"
+version = "0.1.0"
+description = "Async client for the Kerbl IoT web API"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "derjoerg" }]
+keywords = ["kerbl", "iot", "smartcoop", "poultry", "home-assistant"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Home Automation",
+]
+dependencies = [
+    "aiohttp>=3.10,<4",
+    "python-socketio[asyncio_client]>=5.11,<6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "build>=1.2,<2",
+    "coverage[toml]>=7.6,<8",
+    "twine>=6,<7",
+]
+
+[project.urls]
+Source = "https://github.com/derjoerg/kerbl-iot"
+Issues = "https://github.com/derjoerg/kerbl-iot/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/kerbl_iot"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/LICENSE",
+    "/README.md",
+    "/pyproject.toml",
+    "/src",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
