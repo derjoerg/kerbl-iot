@@ -23,6 +23,16 @@ class SmartCoopWaterHeaterTest(unittest.TestCase):
         self.assertTrue(water_heater.water_sensor_state)
         self.assertTrue(water_heater.has_water_sensor)
         self.assertTrue(water_heater.has_temperature_reading)
+        self.assertEqual(
+            water_heater.to_diagnostics(),
+            {
+                "id": "water-1",
+                "water_temperature": 17.6,
+                "water_sensor_state": True,
+                "has_water_sensor": True,
+                "has_temperature_reading": True,
+            },
+        )
 
     def test_water_heater_updates_in_place(self) -> None:
         water_heater = SmartCoopWaterHeater.from_api({"waterTemperature": 10.0})

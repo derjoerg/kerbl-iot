@@ -61,6 +61,19 @@ class SmartCoopLight:
         ):
             setattr(self, attribute, getattr(light, attribute))
 
+    def to_diagnostics(self) -> dict[str, Any]:
+        """Return a JSON-compatible diagnostic snapshot of this light component."""
+        return {
+            "id": self.id,
+            "current_dim_value": self.current_dim_value,
+            "is_on": self.is_on,
+            "evening_on_time": self.evening_on_time,
+            "morning_on_time": self.morning_on_time,
+            "mode": self.mode,
+            "dark_time": self.dark_time,
+            "closing_mode": self.closing_mode,
+        }
+
     @classmethod
     def from_api(cls, data: dict[str, Any] | None) -> "SmartCoopLight":
         """Create a light component from the nested ``light`` payload."""

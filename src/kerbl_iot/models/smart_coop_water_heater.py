@@ -27,6 +27,16 @@ class SmartCoopWaterHeater:
         ):
             setattr(self, attribute, getattr(water_heater, attribute))
 
+    def to_diagnostics(self) -> dict[str, Any]:
+        """Return a JSON-compatible diagnostic snapshot of this water heater component."""
+        return {
+            "id": self.id,
+            "water_temperature": self.water_temperature,
+            "water_sensor_state": self.water_sensor_state,
+            "has_water_sensor": self.has_water_sensor,
+            "has_temperature_reading": self.has_temperature_reading,
+        }
+
     @classmethod
     def from_api(cls, data: dict[str, Any] | None) -> "SmartCoopWaterHeater":
         """Create a water heater component from the nested ``waterHeater`` payload."""

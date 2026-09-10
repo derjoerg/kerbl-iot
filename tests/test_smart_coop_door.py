@@ -36,12 +36,32 @@ class SmartCoopDoorTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(door.closes_in_minutes, 6)
         self.assertEqual(door.opening_time, "08:00")
         self.assertEqual(door.weekend_opening_time, "09:00")
+        self.assertEqual(
+            door.to_diagnostics(),
+            {
+                "id": "door-1",
+                "has_no_door": False,
+                "state": "OPEN",
+                "state_value": 79,
+                "closes_in_minutes": 6,
+                "type": 2,
+                "opening_mode": 0,
+                "relative_opening_brightness": 30,
+                "opening_time": "08:00",
+                "closing_mode": 0,
+                "relative_closing_brightness": 15,
+                "closing_delay_duration": 6,
+                "weekend_mode": 0,
+                "weekend_opening_time": "09:00",
+            },
+        )
 
     def test_missing_door_payload_has_unknown_values(self) -> None:
         door = SmartCoopDoor.from_api(None)
 
         self.assertIsNone(door.id)
         self.assertIsNone(door.state)
+        self.assertIsNone(door.to_diagnostics()["state"])
 
     async def test_door_commands_delegate_to_attached_client(self) -> None:
         api = AsyncMock()

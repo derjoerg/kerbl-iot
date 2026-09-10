@@ -69,6 +69,16 @@ class SmartCoopTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(coop.brightness.current_brightness, 56)
         self.assertEqual(coop.current_error_reason, "[0]")
         self.assertEqual(coop.error_reason_history, "[]")
+        diagnostics = coop.to_diagnostics()
+        self.assertEqual(diagnostics["id"], "852e1e85-aa03-4121-8dfb-2ccedec1bd58")
+        self.assertEqual(diagnostics["user_id"], "dad94be9-1e68-4a6b-9c46-070fe53f99ee")
+        self.assertEqual(diagnostics["name"], "H\u00fchnerstall")
+        self.assertEqual(diagnostics["firmware_version"], "V01.34")
+        self.assertEqual(diagnostics["door"]["state"], "OPEN")
+        self.assertEqual(diagnostics["feeder"]["feeding_active"], True)
+        self.assertEqual(diagnostics["water_heater"]["water_temperature"], 17.6)
+        self.assertEqual(diagnostics["light"]["current_dim_value"], 0)
+        self.assertEqual(diagnostics["brightness"]["current_brightness"], 56)
 
     def test_missing_light_value_has_unknown_light_state(self) -> None:
         coop = SmartCoop.from_api(

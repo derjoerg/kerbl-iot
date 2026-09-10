@@ -50,6 +50,20 @@ class SmartCoopLog:
             return "Zeitpunkt unbekannt"
         return self.occurred_at.strftime("%Y-%m-%d %H:%M")
 
+    def to_diagnostics(self) -> dict[str, Any]:
+        """Return a JSON-compatible diagnostic snapshot of this log entry."""
+        return {
+            "time": self.time,
+            "date": self.date,
+            "active": self.active,
+            "error_code": self.error_code,
+            "error_key": self.error_key,
+            "error_message": self.error_message,
+            "level": self.level,
+            "occurred_at": self.occurred_at.isoformat() if self.occurred_at else None,
+            "received_at": self.received_at.isoformat(),
+        }
+
     @classmethod
     def from_api(cls, data: dict[str, Any]) -> "SmartCoopLog":
         """Create a log entry from an item in the API ``logs`` array."""

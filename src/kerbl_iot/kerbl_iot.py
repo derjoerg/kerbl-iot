@@ -3,6 +3,7 @@
 import asyncio
 import logging
 from collections.abc import Awaitable, Callable
+from typing import Any
 
 from .api import KerblIOTApi
 from .models import SmartCoop, SmartCoopLog
@@ -75,6 +76,20 @@ class KerblIOT:
     def get_smart_coop_logs(self, smart_coop_id: str) -> list[SmartCoopLog]:
         """Return the latest authoritative log entries for a SmartCoop."""
         return self._smart_coop_logs.get(smart_coop_id, [])
+
+    def to_diagnostics(self) -> dict[str, Any]:
+        """Return a JSON-compatible diagnostic snapshot of loaded state."""
+        return {
+            "smart_coops": [
+                smart_coop.to_diagnostics()
+                for smart_coop in self.smart_coops
+            ],
+            "smart_coop_logs": {
+                smart_coop_id: [log.to_diagnostics() for log in logs]
+                for smart_coop_id, logs in self._smart_coop_logs.items()
+            },
+            "websocket_connected": self.api.websocket_connected,
+        }
 
     def register_smart_coop_update_callback(
         self, callback: Callable[[SmartCoop], Awaitable[None]]

@@ -27,6 +27,19 @@ class SmartCoopLightTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(light.current_dim_value, 10)
         self.assertTrue(light.is_on)
         self.assertEqual(light.dark_time, "10:00")
+        self.assertEqual(
+            light.to_diagnostics(),
+            {
+                "id": "light-1",
+                "current_dim_value": 10,
+                "is_on": True,
+                "evening_on_time": 1,
+                "morning_on_time": 2,
+                "mode": 4,
+                "dark_time": "10:00",
+                "closing_mode": 1,
+            },
+        )
 
     def test_missing_dim_value_has_unknown_light_state(self) -> None:
         self.assertIsNone(SmartCoopLight.from_api(None).is_on)

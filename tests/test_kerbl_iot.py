@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock
 
 from kerbl_iot import KerblIOT, KerblIOTApi
 from kerbl_iot.models.smart_coop import SmartCoop
+from kerbl_iot.models.smart_coop_log import SmartCoopLog
 
 
 class KerblIOTTest(unittest.IsolatedAsyncioTestCase):
@@ -64,6 +65,47 @@ class KerblIOTTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(kerbl.get_smart_coop_logs("coop-1"), ["log-entry"])
         api.get_smart_coop_logs.assert_awaited_once_with("coop-1")
         callback.assert_awaited_once_with(coop, ["log-entry"])
+
+    async def test_diagnostics_dump_includes_loaded_devices_and_logs(self) -> None:
+        api = AsyncMock(spec=KerblIOTApi)
+        type(api).websocket_connected = unittest.mock.PropertyMock(return_value=True)
+        coop = SmartCoop.from_api(
+            {
+                "id": "coop-1",
+                "userId": "user-1",
+                "description": "Coop",
+                "firmwareVersion": "V01.34",
+                "isOnline": True,
+                "door": {"state": 79},
+            },
+            api,
+        )
+        log = SmartCoopLog.from_api(
+            {
+                "time": "07:23",
+                "date": "2026.09.09",
+                "active": True,
+                "errorReason": {
+                    "plain": 128,
+                    "i18nKey": "errorReason.feedEmpty",
+                },
+                "level": "error",
+            }
+        )
+        api.get_smart_coops.return_value = [coop]
+        api.get_smart_coop_logs.return_value = [log]
+        kerbl = KerblIOT(api)
+
+        await kerbl.load()
+        diagnostics = kerbl.to_diagnostics()
+
+        self.assertTrue(diagnostics["websocket_connected"])
+        self.assertEqual(diagnostics["smart_coops"][0]["id"], "coop-1")
+        self.assertEqual(diagnostics["smart_coops"][0]["door"]["state"], "OPEN")
+        self.assertEqual(
+            diagnostics["smart_coop_logs"]["coop-1"][0]["error_message"],
+            "Futter leer",
+        )
 
     async def test_socket_error_change_debounces_log_refresh(self) -> None:
         api = AsyncMock(spec=KerblIOTApi)

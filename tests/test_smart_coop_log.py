@@ -29,6 +29,15 @@ class SmartCoopLogTest(unittest.TestCase):
         self.assertIsNotNone(log.occurred_at)
         self.assertIsNotNone(log.received_at.tzinfo)
         self.assertTrue(log.active)
+        diagnostics = log.to_diagnostics()
+        self.assertEqual(diagnostics["time"], "07:23")
+        self.assertEqual(diagnostics["date"], "2026.09.09")
+        self.assertEqual(diagnostics["error_code"], 128)
+        self.assertEqual(diagnostics["error_key"], "errorReason.feedEmpty")
+        self.assertEqual(diagnostics["error_message"], "Futter leer")
+        self.assertEqual(diagnostics["level"], "error")
+        self.assertEqual(diagnostics["occurred_at"], "2026-09-09T07:23:00")
+        self.assertIsInstance(diagnostics["received_at"], str)
 
     def test_placeholder_log_timestamp_is_not_treated_as_valid(self) -> None:
         log = SmartCoopLog.from_api(
@@ -48,6 +57,7 @@ class SmartCoopLogTest(unittest.TestCase):
         self.assertEqual(log.timestamp_display, "Zeitpunkt unbekannt")
         self.assertEqual(log.date, "2000.00.09")
         self.assertEqual(log.time, "00:00")
+        self.assertIsNone(log.to_diagnostics()["occurred_at"])
 
     def test_invalid_log_timestamp_is_not_treated_as_valid(self) -> None:
         log = SmartCoopLog.from_api(

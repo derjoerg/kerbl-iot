@@ -61,6 +61,25 @@ class SmartCoopFeeder:
         ):
             setattr(self, attribute, getattr(feeder, attribute))
 
+    def to_diagnostics(self) -> dict[str, Any]:
+        """Return a JSON-compatible diagnostic snapshot of this feeder component."""
+        return {
+            "id": self.id,
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "feeding_interval": self.feeding_interval,
+            "interval_start_times": self.interval_start_times,
+            "interval_end_times": self.interval_end_times,
+            "feeding_locked": self.feeding_locked,
+            "feeding_active": self.feeding_active,
+            "has_feed_sensor": self.has_feed_sensor,
+            "is_feed_full": self.is_feed_full,
+            "feeding_in_progress": self.feeding_in_progress,
+            "animal_count": self.animal_count,
+            "amount_per_animal": self.amount_per_animal,
+            "amount_per_feeding_intervals": self.amount_per_feeding_intervals,
+        }
+
     @classmethod
     def from_api(cls, data: dict[str, Any] | None) -> "SmartCoopFeeder":
         """Create a feeder component from the nested ``feeder`` payload."""

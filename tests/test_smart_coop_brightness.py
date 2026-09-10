@@ -24,6 +24,17 @@ class SmartCoopBrightnessTest(unittest.TestCase):
         self.assertEqual(brightness.current_brightness, 56)
         self.assertEqual(brightness.night_duration_start_time, 72279)
         self.assertTrue(brightness.is_available)
+        self.assertEqual(
+            brightness.to_diagnostics(),
+            {
+                "id": "brightness-1",
+                "external_sensor_connected": True,
+                "current_brightness": 56,
+                "is_available": True,
+                "night_duration_start_time": 72279,
+                "night_duration_end_time": 23884,
+            },
+        )
 
     def test_brightness_updates_in_place(self) -> None:
         brightness = SmartCoopBrightness.from_api({"currentBrightness": 10})

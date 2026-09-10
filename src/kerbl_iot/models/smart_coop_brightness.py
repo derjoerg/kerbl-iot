@@ -29,6 +29,17 @@ class SmartCoopBrightness:
         ):
             setattr(self, attribute, getattr(brightness, attribute))
 
+    def to_diagnostics(self) -> dict[str, Any]:
+        """Return a JSON-compatible diagnostic snapshot of this brightness component."""
+        return {
+            "id": self.id,
+            "external_sensor_connected": self.external_sensor_connected,
+            "current_brightness": self.current_brightness,
+            "is_available": self.is_available,
+            "night_duration_start_time": self.night_duration_start_time,
+            "night_duration_end_time": self.night_duration_end_time,
+        }
+
     @classmethod
     def from_api(cls, data: dict[str, Any] | None) -> "SmartCoopBrightness":
         """Create a brightness component from the nested ``brightness`` payload."""

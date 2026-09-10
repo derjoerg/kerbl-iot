@@ -42,6 +42,25 @@ class SmartCoopFeederTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(feeder.animal_count, 7)
         self.assertEqual(feeder.amount_per_animal, 100)
         self.assertEqual(feeder.amount_per_feeding_intervals, [0, 1])
+        self.assertEqual(
+            feeder.to_diagnostics(),
+            {
+                "id": "feeder-1",
+                "start_time": "06:38",
+                "end_time": "20:19",
+                "feeding_interval": 41,
+                "interval_start_times": ["06:38", "07:19"],
+                "interval_end_times": ["07:18", "07:59"],
+                "feeding_locked": False,
+                "feeding_active": True,
+                "has_feed_sensor": True,
+                "is_feed_full": True,
+                "feeding_in_progress": False,
+                "animal_count": 7,
+                "amount_per_animal": 100,
+                "amount_per_feeding_intervals": [0, 1],
+            },
+        )
 
     def test_invalid_json_lists_are_unknown(self) -> None:
         feeder = SmartCoopFeeder.from_api(
