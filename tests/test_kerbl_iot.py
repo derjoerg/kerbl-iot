@@ -79,6 +79,9 @@ class KerblIOTTest(unittest.IsolatedAsyncioTestCase):
         )
         self.assertFalse(kerbl.is_smart_coop_available("coop-1"))
 
+        await kerbl.async_close()
+        callback.assert_any_await(coop, False)
+
     async def test_load_refreshes_and_caches_smart_coop_logs(self) -> None:
         api = AsyncMock(spec=KerblIOTApi)
         coop = SmartCoop.from_api(

@@ -95,6 +95,28 @@ class KerblIOTApiTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(session.request_args[1][1], "https://app.kerbl-iot.com/api/v0.1/auth/refresh")
         await api.close()
 
+    async def test_login_creates_and_closes_owned_session(self) -> None:
+        session = FakeSession({"accessToken": "access", "refreshToken": "refresh"})
+        api = KerblIOTApi("test@example.com", "password")
+
+        with patch("kerbl_iot.api.aiohttp.ClientSession", return_value=session) as client_session:
+            await api.login()
+            client_session.assert_called_once()
+
+        await api.close()
+        self.assertTrue(session.closed)
+
+    async def test_login_closes_owned_session_when_request_fails(self) -> None:
+        session = FakeSession({})
+        session.errors.append(aiohttp.ClientConnectionError())
+        api = KerblIOTApi("test@example.com", "password")
+
+        with patch("kerbl_iot.api.aiohttp.ClientSession", return_value=session):
+            with self.assertRaises(KerblConnectionError):
+                await api.login()
+
+        self.assertTrue(session.closed)
+
     async def test_login_requires_both_tokens(self) -> None:
         session = FakeSession({"accessToken": "access"})
         api = KerblIOTApi("test@example.com", "password", session=session)  # type: ignore[arg-type]
@@ -147,6 +169,15 @@ class KerblIOTApiTest(unittest.IsolatedAsyncioTestCase):
         api._session.errors.extend([aiohttp.ClientResponseError(None, (), status=401)])
         await api._request_json("GET", "device")
         api.refresh_token.assert_awaited_once()
+
+    async def test_request_wraps_non_unauthorized_http_errors(self) -> None:
+        api = KerblIOTApi("test@example.com", "password")
+        session = FakeSession({})
+        api._session = session  # type: ignore[assignment]
+        session.errors.append(aiohttp.ClientResponseError(None, (), status=503))
+
+        with self.assertRaises(KerblConnectionError):
+            await api._request_json("GET", "device")
 
     async def test_refresh_keeps_session_and_preserves_error_category(self) -> None:
         session = FakeSession({})
