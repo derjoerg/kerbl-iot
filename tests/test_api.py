@@ -145,6 +145,19 @@ class KerblIOTApiTest(unittest.IsolatedAsyncioTestCase):
         await restored_api.refresh_token()
         self.assertEqual(restored_api.get_tokens(), ("new-access", "new-refresh"))
 
+    async def test_tokens_can_be_restored_without_session_injection(self) -> None:
+        session = FakeSession({"accessToken": "new-access", "refreshToken": "new-refresh"})
+        api = KerblIOTApi("test@example.com", "password")
+
+        with patch("kerbl_iot.api.aiohttp.ClientSession", return_value=session) as client_session:
+            api.restore_tokens("access", "refresh")
+
+        client_session.assert_called_once()
+        self.assertEqual(session.headers["Authorization"], "Bearer access")
+        self.assertEqual(session.request_args, [])
+        await api.close()
+        self.assertTrue(session.closed)
+
     def test_get_tokens_requires_authentication(self) -> None:
         api = KerblIOTApi("test@example.com", "password")
         with self.assertRaises(KerblAuthenticationError):

@@ -90,16 +90,7 @@ class KerblIOTApi:
     async def login(self) -> dict[str, Any]:
         """Sign in using the request format captured from the web application."""
         await self.close()
-        if self._provided_session is not None:
-            self._session = self._provided_session
-        else:
-            self._session = aiohttp.ClientSession(
-                base_url=BASE_URL,
-                headers={"Accept": "application/json"},
-                timeout=aiohttp.ClientTimeout(total=self._timeout),
-                raise_for_status=True,
-            )
-            self._session_owned = True
+        self._ensure_session()
         payload = {
             "email": self._email,
             "password": self._password,
@@ -145,9 +136,24 @@ class KerblIOTApi:
 
     def restore_tokens(self, access_token: str, refresh_token: str) -> None:
         """Restore tokens from persistent storage without signing in again."""
+        self._ensure_session()
         self._set_authentication(
             {"accessToken": access_token, "refreshToken": refresh_token}
         )
+
+    def _ensure_session(self) -> None:
+        if self._session is not None:
+            return
+        if self._provided_session is not None:
+            self._session = self._provided_session
+            return
+        self._session = aiohttp.ClientSession(
+            base_url=BASE_URL,
+            headers={"Accept": "application/json"},
+            timeout=aiohttp.ClientTimeout(total=self._timeout),
+            raise_for_status=True,
+        )
+        self._session_owned = True
 
     def _set_authentication(self, authentication: dict[str, Any]) -> None:
         access_token = authentication.get("accessToken")
