@@ -20,13 +20,6 @@ class SmartCoopLog:
     occurred_at: datetime | None
     received_at: datetime
 
-    @property
-    def timestamp_display(self) -> str:
-        """Return the device timestamp for display, or a clear unknown marker."""
-        if self.occurred_at is None:
-            return "Zeitpunkt unbekannt"
-        return self.occurred_at.strftime("%Y-%m-%d %H:%M")
-
     def to_diagnostics(self) -> dict[str, Any]:
         """Return a JSON-compatible diagnostic snapshot of this log entry."""
         return {
