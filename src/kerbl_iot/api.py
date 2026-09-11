@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import uuid
 from collections.abc import Awaitable, Callable
+from contextlib import asynccontextmanager
 from typing import Any
 
 import aiohttp
@@ -87,23 +88,18 @@ class KerblIOTApi:
 
     async def login(self) -> dict[str, Any]:
         """Sign in using the request format captured from the web application."""
-        await self.close()
-        self._ensure_session()
-        payload = {
-            "email": self._email,
-            "password": self._password,
-            "appBrand": "kerbl",
-            "appVersion": "137.6.1",
-            "loginId": str(uuid.uuid4()),
-        }
-        try:
+        async with self._login_transport():
+            payload = {
+                "email": self._email,
+                "password": self._password,
+                "appBrand": "kerbl",
+                "appVersion": "137.6.1",
+                "loginId": str(uuid.uuid4()),
+            }
             authentication = await self._request_json(
                 "POST", "auth/sign-in", payload, refresh_on_unauthorized=False
             )
             self._set_authentication(authentication)
-        except Exception:
-            await self.close()
-            raise
 
         return authentication
 
@@ -150,6 +146,16 @@ class KerblIOTApi:
             raise_for_status=True,
         )
         self._session_owned = True
+
+    @asynccontextmanager
+    async def _login_transport(self) -> Any:
+        await self.close()
+        self._ensure_session()
+        try:
+            yield
+        except Exception:
+            await self.close()
+            raise
 
     def _set_authentication(self, authentication: dict[str, Any]) -> None:
         access_token = authentication.get("accessToken")
