@@ -53,6 +53,8 @@ jobs:
             exit 1
           fi
 
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag --annotate "$tag" --message "Release $VERSION" "$GITHUB_SHA"
           git push origin "$tag"
           gh release create "$tag" \
