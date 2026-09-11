@@ -1,8 +1,9 @@
 name: Create release
 
 on:
-  push:
-    branches: [main]
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
 
 permissions:
   contents: write
@@ -10,10 +11,16 @@ permissions:
 jobs:
   release:
     name: Create GitHub release
+    if: >-
+      ${{
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main'
+      }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 2
 
       - uses: actions/setup-python@v5
@@ -46,6 +53,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.version }}
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           tag="v${VERSION}"
           if git rev-parse --verify --quiet "refs/tags/${tag}"; then
@@ -55,9 +63,9 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag --annotate "$tag" --message "Release $VERSION" "$GITHUB_SHA"
+          git tag --annotate "$tag" --message "Release $VERSION" "$COMMIT_SHA"
           git push origin "$tag"
           gh release create "$tag" \
             --title "$tag" \
             --generate-notes \
-            --target "$GITHUB_SHA"
+            --target "$COMMIT_SHA"

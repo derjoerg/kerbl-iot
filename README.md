@@ -33,9 +33,10 @@ asyncio.run(main())
 
 ## Releasing to PyPI
 
-When a version change is pushed to `main`, GitHub Actions automatically creates a
-matching tag and GitHub Release. The release then triggers the PyPI publish
-workflow. Before the first release, configure PyPI Trusted Publishing for the
+When a version change is pushed to `main`, GitHub Actions first runs the complete
+`ci.yml` workflow. Only after CI succeeds does `release.yml` create a matching tag
+and GitHub Release. The published release then triggers `publish.yml` for PyPI.
+Before the first release, configure PyPI Trusted Publishing for the
 `derjoerg/kerbl-iot` repository and the `.github/workflows/publish.yml` workflow,
 using the `pypi` environment.
 
