@@ -25,13 +25,21 @@ SOCKET_PATH = "ws/v0.1/socket.io"
 class KerblIOTApi:
     """Authenticate with and retrieve data from Kerbl IoT."""
 
-    def __init__(self, email: str, password: str, timeout: float = 15.0) -> None:
+    def __init__(
+        self,
+        email: str,
+        password: str,
+        timeout: float = 15.0,
+        session: aiohttp.ClientSession | None = None,
+    ) -> None:
         if timeout <= 0:
             raise ValueError("timeout must be greater than zero.")
         self._email = email
         self._password = password
         self._timeout = timeout
-        self._session: aiohttp.ClientSession | None = None
+        self._provided_session = session
+        self._session = session
+        self._session_owned = False
         self._socket: socketio.AsyncClient | None = None
         self._access_token: str | None = None
         self._refresh_token: str | None = None
@@ -73,18 +81,23 @@ class KerblIOTApi:
                 if socket is not None:
                     await socket.disconnect()
             finally:
-                if session is not None:
+                if session is not None and self._session_owned:
                     await session.close()
+                self._session_owned = False
 
     async def login(self) -> dict[str, Any]:
         """Sign in using the request format captured from the web application."""
         await self.close()
-        self._session = aiohttp.ClientSession(
-            base_url=BASE_URL,
-            headers={"Accept": "application/json"},
-            timeout=aiohttp.ClientTimeout(total=self._timeout),
-            raise_for_status=True,
-        )
+        if self._provided_session is not None:
+            self._session = self._provided_session
+        else:
+            self._session = aiohttp.ClientSession(
+                base_url=BASE_URL,
+                headers={"Accept": "application/json"},
+                timeout=aiohttp.ClientTimeout(total=self._timeout),
+                raise_for_status=True,
+            )
+            self._session_owned = True
         payload = {
             "email": self._email,
             "password": self._password,
@@ -146,8 +159,9 @@ class KerblIOTApi:
     ) -> dict[str, Any]:
         """Send one JSON request and refresh the access token once after a 401."""
         session = self._require_session()
+        request_url = endpoint if self._provided_session is None else f"{BASE_URL}{endpoint}"
         try:
-            async with session.request(method, endpoint, json=payload) as response:
+            async with session.request(method, request_url, json=payload) as response:
                 return await response.json()
         except aiohttp.ClientResponseError as error:
             if error.status == 401 and refresh_on_unauthorized:

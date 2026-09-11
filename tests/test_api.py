@@ -78,26 +78,26 @@ class KerblIOTApiTest(unittest.IsolatedAsyncioTestCase):
         api.close.assert_awaited_once()
     async def test_login_and_refresh_update_bearer_token(self) -> None:
         session = FakeSession({"accessToken": "access", "refreshToken": "refresh"})
-        api = KerblIOTApi("test@example.com", "password")
+        api = KerblIOTApi("test@example.com", "password", session=session)  # type: ignore[arg-type]
 
-        with patch("kerbl_iot.api.aiohttp.ClientSession", return_value=session):
+        with patch("kerbl_iot.api.aiohttp.ClientSession") as client_session:
             await api.login()
 
+        client_session.assert_not_called()
         self.assertEqual(session.headers["Authorization"], "Bearer access")
-        self.assertEqual(session.request_args[0][1], "auth/sign-in")
+        self.assertEqual(session.request_args[0][1], "https://app.kerbl-iot.com/api/v0.1/auth/sign-in")
         await api.refresh_token()
-        self.assertEqual(session.request_args[1][1], "auth/refresh")
+        self.assertEqual(session.request_args[1][1], "https://app.kerbl-iot.com/api/v0.1/auth/refresh")
         await api.close()
 
     async def test_login_requires_both_tokens(self) -> None:
         session = FakeSession({"accessToken": "access"})
-        api = KerblIOTApi("test@example.com", "password")
+        api = KerblIOTApi("test@example.com", "password", session=session)  # type: ignore[arg-type]
 
-        with patch("kerbl_iot.api.aiohttp.ClientSession", return_value=session):
-            with self.assertRaises(KerblAuthenticationError):
-                await api.login()
+        with self.assertRaises(KerblAuthenticationError):
+            await api.login()
 
-        self.assertTrue(session.closed)
+        self.assertFalse(session.closed)
 
     async def test_refresh_and_request_error_paths(self) -> None:
         api = KerblIOTApi("test@example.com", "password")
