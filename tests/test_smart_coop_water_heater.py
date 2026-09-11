@@ -37,8 +37,6 @@ class SmartCoopWaterHeaterTest(unittest.TestCase):
     def test_water_heater_updates_in_place(self) -> None:
         water_heater = SmartCoopWaterHeater.from_api({"waterTemperature": 10.0})
 
-        water_heater.update_from_api(
-            SmartCoopWaterHeater.from_api({"waterTemperature": 11.5})
-        )
+        water_heater.update_from_api(SmartCoopWaterHeater.from_api({"waterTemperature": 11.5}))
 
         self.assertEqual(water_heater.water_temperature, 11.5)

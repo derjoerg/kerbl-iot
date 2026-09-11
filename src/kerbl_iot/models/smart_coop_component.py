@@ -14,11 +14,11 @@ class SmartCoopComponentMixin:
     __slots__ = ("_smart_coop",)
     _component_name = "Component"
 
-    def attach(self, smart_coop: "SmartCoop") -> None:
+    def attach(self, smart_coop: SmartCoop) -> None:
         """Attach this component to its owning SmartCoop."""
         self._smart_coop = smart_coop
 
-    def _require_smart_coop(self) -> "SmartCoop":
+    def _require_smart_coop(self) -> SmartCoop:
         smart_coop = getattr(self, "_smart_coop", None)
         if smart_coop is None:
             raise RuntimeError(f"{self._component_name} is not attached to a SmartCoop.")

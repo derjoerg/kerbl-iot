@@ -16,8 +16,8 @@ from kerbl_iot import KerblIOT, KerblIOTApi
 async def main() -> None:
     async with KerblIOT(
         KerblIOTApi(
-        email=os.environ["KERBL_EMAIL"],
-        password=os.environ["KERBL_PASSWORD"],
+            email=os.environ["KERBL_EMAIL"],
+            password=os.environ["KERBL_PASSWORD"],
         )
     ) as kerbl:
         await kerbl.connect_websocket()

@@ -35,7 +35,7 @@ class SmartCoop:
     brightness: SmartCoopBrightness
     current_error_reason: str | None = None
     error_reason_history: str | None = None
-    _api: "SmartCoopApi | None" = field(default=None, repr=False, compare=False)
+    _api: SmartCoopApi | None = field(default=None, repr=False, compare=False)
     _command_lock: asyncio.Lock = field(default_factory=asyncio.Lock, init=False, repr=False)
     _update_event: asyncio.Event = field(default_factory=asyncio.Event, init=False, repr=False)
     _callbacks: set[Callable[[], None]] = field(default_factory=set, init=False, repr=False)
@@ -57,7 +57,7 @@ class SmartCoop:
             raise RuntimeError(f"No SmartCoop found with ID: {self.id}")
         await self.update_from_api(smart_coop)
 
-    async def update_from_api(self, smart_coop: "SmartCoop") -> None:
+    async def update_from_api(self, smart_coop: SmartCoop) -> None:
         """Update this instance in place from an API or Socket.IO state update."""
         copy_dataclass_fields(self, smart_coop)
         self.door.update_from_api(smart_coop.door)
@@ -87,9 +87,7 @@ class SmartCoop:
         diagnostics["brightness"] = self.brightness.to_diagnostics()
         return diagnostics
 
-    async def _wait_for(
-        self, condition: Callable[[], bool], timeout: float
-    ) -> "SmartCoop":
+    async def _wait_for(self, condition: Callable[[], bool], timeout: float) -> SmartCoop:
         deadline = asyncio.get_running_loop().time() + timeout
         while True:
             self._update_event.clear()
@@ -111,9 +109,7 @@ class SmartCoop:
         self.light.attach(self)
 
     @classmethod
-    def from_api(
-        cls, data: dict[str, Any], api: "SmartCoopApi | None" = None
-    ) -> "SmartCoop":
+    def from_api(cls, data: dict[str, Any], api: SmartCoopApi | None = None) -> SmartCoop:
         """Create a model from an item in the ``smartCoop`` API array."""
         return cls(
             id=data["id"],

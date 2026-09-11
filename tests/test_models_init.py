@@ -21,7 +21,9 @@ from kerbl_iot.models.smart_coop_door import SmartCoopDoor as SmartCoopDoorModel
 from kerbl_iot.models.smart_coop_feeder import SmartCoopFeeder as SmartCoopFeederModel
 from kerbl_iot.models.smart_coop_light import SmartCoopLight as SmartCoopLightModel
 from kerbl_iot.models.smart_coop_log import SmartCoopLog as SmartCoopLogModel
-from kerbl_iot.models.smart_coop_water_heater import SmartCoopWaterHeater as SmartCoopWaterHeaterModel
+from kerbl_iot.models.smart_coop_water_heater import (
+    SmartCoopWaterHeater as SmartCoopWaterHeaterModel,
+)
 
 
 class ModelPackageTest(unittest.TestCase):

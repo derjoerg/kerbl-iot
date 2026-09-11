@@ -45,15 +45,13 @@ class KerblIOTApi:
         self._refresh_token: str | None = None
         self._refresh_lock = asyncio.Lock()
         self._smart_coop_update_callbacks: list[Callable[[SmartCoop], Awaitable[None]]] = []
-        self._socket_event_callbacks: list[
-            Callable[[str, Any], Awaitable[None]]
-        ] = []
+        self._socket_event_callbacks: list[Callable[[str, Any], Awaitable[None]]] = []
         self._socket_disconnect_callbacks: list[Callable[[], Awaitable[None]]] = []
         self._socket_connect_callbacks: list[Callable[[], Awaitable[None]]] = []
         self._subscribed_device_ids: list[str] = []
         self._socket_user_id: str | None = None
 
-    async def __aenter__(self) -> "KerblIOTApi":
+    async def __aenter__(self) -> KerblIOTApi:
         await self.login()
         return self
 
@@ -137,9 +135,7 @@ class KerblIOTApi:
     def restore_tokens(self, access_token: str, refresh_token: str) -> None:
         """Restore tokens from persistent storage without signing in again."""
         self._ensure_session()
-        self._set_authentication(
-            {"accessToken": access_token, "refreshToken": refresh_token}
-        )
+        self._set_authentication({"accessToken": access_token, "refreshToken": refresh_token})
 
     def _ensure_session(self) -> None:
         if self._session is not None:
@@ -189,7 +185,7 @@ class KerblIOTApi:
             if error.status == 401:
                 raise KerblAuthenticationError("Kerbl rejected the request.") from error
             raise KerblConnectionError("Kerbl IoT service returned an HTTP error.") from error
-        except (aiohttp.ClientError, asyncio.TimeoutError) as error:
+        except (TimeoutError, aiohttp.ClientError) as error:
             raise KerblConnectionError("Kerbl IoT service could not be reached.") from error
         except (TypeError, ValueError) as error:
             raise KerblProtocolError("Kerbl returned an invalid JSON response.") from error
@@ -278,7 +274,7 @@ class KerblIOTApi:
                     "userId": self._socket_user_id,
                 },
             )
-        except (aiohttp.ClientError, socketio.exceptions.ConnectionError, asyncio.TimeoutError) as error:
+        except (TimeoutError, aiohttp.ClientError, socketio.exceptions.ConnectionError) as error:
             await socket.disconnect()
             self._subscribed_device_ids = []
             self._socket_user_id = None
@@ -315,15 +311,11 @@ class KerblIOTApi:
         """Register an asynchronous callback for all Socket.IO server events."""
         self._socket_event_callbacks.append(callback)
 
-    def register_socket_disconnect_callback(
-        self, callback: Callable[[], Awaitable[None]]
-    ) -> None:
+    def register_socket_disconnect_callback(self, callback: Callable[[], Awaitable[None]]) -> None:
         """Register an asynchronous callback for Socket.IO disconnects."""
         self._socket_disconnect_callbacks.append(callback)
 
-    def register_socket_connect_callback(
-        self, callback: Callable[[], Awaitable[None]]
-    ) -> None:
+    def register_socket_connect_callback(self, callback: Callable[[], Awaitable[None]]) -> None:
         """Register an asynchronous callback for Socket.IO connects and reconnects."""
         self._socket_connect_callbacks.append(callback)
 

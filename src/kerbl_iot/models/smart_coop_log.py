@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from .base import dataclass_to_diagnostics
@@ -27,7 +27,7 @@ class SmartCoopLog:
         return dataclass_to_diagnostics(self)
 
     @classmethod
-    def from_api(cls, data: dict[str, Any]) -> "SmartCoopLog":
+    def from_api(cls, data: dict[str, Any]) -> SmartCoopLog:
         """Create a log entry from an item in the API ``logs`` array."""
         error_reason = data["errorReason"]
         raw_date = data["date"]
@@ -40,7 +40,7 @@ class SmartCoopLog:
             error_key=error_reason["i18nKey"],
             level=data["level"],
             occurred_at=_parse_log_timestamp(raw_date, raw_time),
-            received_at=datetime.now(timezone.utc),
+            received_at=datetime.now(UTC),
         )
 
 

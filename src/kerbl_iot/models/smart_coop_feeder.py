@@ -38,16 +38,12 @@ class SmartCoopFeeder(SmartCoopComponentMixin):
         smart_coop = self._require_smart_coop()
         return await smart_coop._require_api()._press_feeder(smart_coop.id)
 
-    async def wait_for_state(
-        self, in_progress: bool, timeout: float = 30.0
-    ) -> "SmartCoop":
+    async def wait_for_state(self, in_progress: bool, timeout: float = 30.0) -> SmartCoop:
         """Wait for the feeder to report the expected running state."""
         smart_coop = self._require_smart_coop()
-        return await smart_coop._wait_for(
-            lambda: self.feeding_in_progress is in_progress, timeout
-        )
+        return await smart_coop._wait_for(lambda: self.feeding_in_progress is in_progress, timeout)
 
-    def update_from_api(self, feeder: "SmartCoopFeeder") -> None:
+    def update_from_api(self, feeder: SmartCoopFeeder) -> None:
         """Update this component in place from a parsed API component."""
         copy_dataclass_fields(self, feeder)
 
@@ -56,7 +52,7 @@ class SmartCoopFeeder(SmartCoopComponentMixin):
         return dataclass_to_diagnostics(self)
 
     @classmethod
-    def from_api(cls, data: dict[str, Any] | None) -> "SmartCoopFeeder":
+    def from_api(cls, data: dict[str, Any] | None) -> SmartCoopFeeder:
         """Create a feeder component from the nested ``feeder`` payload."""
         data = data or {}
         return cls(
@@ -73,10 +69,9 @@ class SmartCoopFeeder(SmartCoopComponentMixin):
             feeding_in_progress=data.get("feedingInProgress"),
             animal_count=data.get("animalCount"),
             amount_per_animal=data.get("amountPerAnimal"),
-            amount_per_feeding_intervals=_json_list(
-                data.get("amountPerFeedingIntervals"), int
-            ),
+            amount_per_feeding_intervals=_json_list(data.get("amountPerFeedingIntervals"), int),
         )
+
 
 def _json_list(value: object, item_type: type) -> list[Any] | None:
     if value is None:

@@ -94,17 +94,13 @@ class SmartCoopTest(unittest.IsolatedAsyncioTestCase):
     async def test_error_acknowledgement_delegates_to_attached_client(self) -> None:
         api = AsyncMock()
         api._acknowledge_errors.return_value = "acknowledged"
-        coop = SmartCoop.from_api(
-            {"id": "coop-1", "userId": "user-1", "isOnline": True}, api
-        )
+        coop = SmartCoop.from_api({"id": "coop-1", "userId": "user-1", "isOnline": True}, api)
 
         self.assertEqual(await coop.acknowledge_errors([256]), "acknowledged")
         api._acknowledge_errors.assert_awaited_once_with("coop-1", [256])
 
     async def test_aggregate_actions_require_an_attached_client(self) -> None:
-        coop = SmartCoop.from_api(
-            {"id": "coop-1", "userId": "user-1", "isOnline": True}
-        )
+        coop = SmartCoop.from_api({"id": "coop-1", "userId": "user-1", "isOnline": True})
 
         with self.assertRaisesRegex(RuntimeError, "not attached"):
             await coop.acknowledge_errors([256])
@@ -112,10 +108,19 @@ class SmartCoopTest(unittest.IsolatedAsyncioTestCase):
     async def test_device_state_actions_and_callbacks(self) -> None:
         api = AsyncMock()
         coop = SmartCoop.from_api(
-            {"id": "coop-1", "userId": "user-1", "isOnline": True, "light": {"currentDimValue": 0}}, api
+            {"id": "coop-1", "userId": "user-1", "isOnline": True, "light": {"currentDimValue": 0}},
+            api,
         )
         fresh = SmartCoop.from_api(
-            {"id": "coop-1", "userId": "user-1", "isOnline": True, "light": {"currentDimValue": 100}, "door": {"state": 79}, "feeder": {"feedingInProgress": True}}, api
+            {
+                "id": "coop-1",
+                "userId": "user-1",
+                "isOnline": True,
+                "light": {"currentDimValue": 100},
+                "door": {"state": 79},
+                "feeder": {"feedingInProgress": True},
+            },
+            api,
         )
         api.get_smart_coops.return_value = [fresh]
         callback = unittest.mock.Mock()
@@ -130,9 +135,7 @@ class SmartCoopTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_refresh_errors_when_device_disappears(self) -> None:
         api = AsyncMock()
-        coop = SmartCoop.from_api(
-            {"id": "coop-1", "userId": "user-1", "isOnline": True}, api
-        )
+        coop = SmartCoop.from_api({"id": "coop-1", "userId": "user-1", "isOnline": True}, api)
         api.get_smart_coops.return_value = []
 
         with self.assertRaises(RuntimeError):
@@ -141,12 +144,20 @@ class SmartCoopTest(unittest.IsolatedAsyncioTestCase):
     async def test_update_keeps_component_references(self) -> None:
         api = AsyncMock()
         coop = SmartCoop.from_api(
-            {"id": "coop-1", "userId": "user-1", "isOnline": True, "light": {"currentDimValue": 100}, "door": {"state": 79}}, api
+            {
+                "id": "coop-1",
+                "userId": "user-1",
+                "isOnline": True,
+                "light": {"currentDimValue": 100},
+                "door": {"state": 79},
+            },
+            api,
         )
         light = coop.light
         door = coop.door
         updated = SmartCoop.from_api(
-            {"id": "coop-1", "userId": "user-1", "isOnline": True, "light": {"currentDimValue": 0}}, api
+            {"id": "coop-1", "userId": "user-1", "isOnline": True, "light": {"currentDimValue": 0}},
+            api,
         )
 
         await coop.update_from_api(updated)
@@ -159,10 +170,17 @@ class SmartCoopTest(unittest.IsolatedAsyncioTestCase):
     async def test_component_waits_use_aggregate_update_event(self) -> None:
         api = AsyncMock()
         coop = SmartCoop.from_api(
-            {"id": "coop-1", "userId": "user-1", "isOnline": True, "light": {"currentDimValue": 100}}, api
+            {
+                "id": "coop-1",
+                "userId": "user-1",
+                "isOnline": True,
+                "light": {"currentDimValue": 100},
+            },
+            api,
         )
         updated = SmartCoop.from_api(
-            {"id": "coop-1", "userId": "user-1", "isOnline": True, "light": {"currentDimValue": 0}}, api
+            {"id": "coop-1", "userId": "user-1", "isOnline": True, "light": {"currentDimValue": 0}},
+            api,
         )
         waiter = asyncio.create_task(coop.light.wait_for_state(False, timeout=1))
         await asyncio.sleep(0)

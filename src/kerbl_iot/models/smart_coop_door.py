@@ -5,9 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from ..exceptions import KerblStateError
 from .base import CommandResult, copy_dataclass_fields, dataclass_to_diagnostics
 from .door_state import DoorState
-from ..exceptions import KerblStateError
 from .smart_coop_component import SmartCoopComponentMixin
 
 if TYPE_CHECKING:
@@ -38,22 +38,20 @@ class SmartCoopDoor(SmartCoopComponentMixin):
         smart_coop = self._require_smart_coop()
         return await smart_coop._require_api()._press_door(smart_coop.id)
 
-    async def open(self) -> "SmartCoop":
+    async def open(self) -> SmartCoop:
         """Open the door and wait for state confirmation."""
         return await self._set_state(DoorState.OPEN)
 
-    async def close(self) -> "SmartCoop":
+    async def close(self) -> SmartCoop:
         """Close the door and wait for state confirmation."""
         return await self._set_state(DoorState.CLOSED)
 
-    async def wait_for_state(
-        self, state: DoorState, timeout: float = 30.0
-    ) -> "SmartCoop":
+    async def wait_for_state(self, state: DoorState, timeout: float = 30.0) -> SmartCoop:
         """Wait for the door to report the expected state."""
         smart_coop = self._require_smart_coop()
         return await smart_coop._wait_for(lambda: self.state is state, timeout)
 
-    def update_from_api(self, door: "SmartCoopDoor") -> None:
+    def update_from_api(self, door: SmartCoopDoor) -> None:
         """Update this component in place from a parsed API component."""
         copy_dataclass_fields(self, door)
 
@@ -64,7 +62,7 @@ class SmartCoopDoor(SmartCoopComponentMixin):
         return diagnostics
 
     @classmethod
-    def from_api(cls, data: dict[str, Any] | None) -> "SmartCoopDoor":
+    def from_api(cls, data: dict[str, Any] | None) -> SmartCoopDoor:
         """Create a door component from the nested ``door`` payload."""
         data = data or {}
         state = data.get("state")
@@ -84,7 +82,7 @@ class SmartCoopDoor(SmartCoopComponentMixin):
             weekend_opening_time=data.get("weekendOpeningTime"),
         )
 
-    async def _set_state(self, state: DoorState) -> "SmartCoop":
+    async def _set_state(self, state: DoorState) -> SmartCoop:
         smart_coop = self._require_smart_coop()
         async with smart_coop._command_lock:
             await smart_coop.refresh_state()
@@ -94,4 +92,3 @@ class SmartCoopDoor(SmartCoopComponentMixin):
                 raise KerblStateError("Door is not in a stable state.")
             await self.press()
             return await self.wait_for_state(state, timeout=120.0)
-

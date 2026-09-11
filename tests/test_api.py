@@ -37,9 +37,7 @@ class FakeSession:
         self.closed = False
         self.errors: list[Exception] = []
 
-    def request(
-        self, method: str, endpoint: str, *, json: dict[str, Any] | None
-    ) -> FakeResponse:
+    def request(self, method: str, endpoint: str, *, json: dict[str, Any] | None) -> FakeResponse:
         if self.errors:
             raise self.errors.pop(0)
         self.request_args.append((method, endpoint, json))
@@ -81,6 +79,7 @@ class KerblIOTApiTest(unittest.IsolatedAsyncioTestCase):
             pass
         api.login.assert_awaited_once()
         api.close.assert_awaited_once()
+
     async def test_login_and_refresh_update_bearer_token(self) -> None:
         session = FakeSession({"accessToken": "access", "refreshToken": "refresh"})
         api = KerblIOTApi("test@example.com", "password", session=session)  # type: ignore[arg-type]
@@ -90,9 +89,13 @@ class KerblIOTApiTest(unittest.IsolatedAsyncioTestCase):
 
         client_session.assert_not_called()
         self.assertEqual(session.headers["Authorization"], "Bearer access")
-        self.assertEqual(session.request_args[0][1], "https://app.kerbl-iot.com/api/v0.1/auth/sign-in")
+        self.assertEqual(
+            session.request_args[0][1], "https://app.kerbl-iot.com/api/v0.1/auth/sign-in"
+        )
         await api.refresh_token()
-        self.assertEqual(session.request_args[1][1], "https://app.kerbl-iot.com/api/v0.1/auth/refresh")
+        self.assertEqual(
+            session.request_args[1][1], "https://app.kerbl-iot.com/api/v0.1/auth/refresh"
+        )
         await api.close()
 
     async def test_login_creates_and_closes_owned_session(self) -> None:
@@ -132,11 +135,11 @@ class KerblIOTApiTest(unittest.IsolatedAsyncioTestCase):
         await api.login()
 
         tokens = api.get_tokens()
-        restored_session = FakeSession(
-            {"accessToken": "new-access", "refreshToken": "new-refresh"}
-        )
+        restored_session = FakeSession({"accessToken": "new-access", "refreshToken": "new-refresh"})
         restored_api = KerblIOTApi(
-            "test@example.com", "password", session=restored_session  # type: ignore[arg-type]
+            "test@example.com",
+            "password",
+            session=restored_session,  # type: ignore[arg-type]
         )
         restored_api.restore_tokens(*tokens)
 

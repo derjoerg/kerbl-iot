@@ -47,9 +47,7 @@ class SmartCoopLightTest(unittest.IsolatedAsyncioTestCase):
     async def test_light_commands_delegate_to_attached_client(self) -> None:
         api = AsyncMock()
         api._press_light.return_value = "light-pressed"
-        coop = SmartCoop.from_api(
-            {"id": "coop-1", "userId": "user-1", "isOnline": True}, api
-        )
+        coop = SmartCoop.from_api({"id": "coop-1", "userId": "user-1", "isOnline": True}, api)
 
         self.assertEqual(await coop.light.press(), "light-pressed")
         api._press_light.assert_awaited_once_with("coop-1")
@@ -78,9 +76,7 @@ class SmartCoopLightTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_wait_and_unknown_state_errors(self) -> None:
         api = AsyncMock()
-        coop = SmartCoop.from_api(
-            {"id": "coop-1", "userId": "user-1", "isOnline": True}, api
-        )
+        coop = SmartCoop.from_api({"id": "coop-1", "userId": "user-1", "isOnline": True}, api)
 
         with self.assertRaises(TimeoutError):
             await coop.light.wait_for_state(True, timeout=0)

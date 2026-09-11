@@ -67,9 +67,7 @@ class SmartCoopDoorTest(unittest.IsolatedAsyncioTestCase):
     async def test_door_commands_delegate_to_attached_client(self) -> None:
         api = AsyncMock()
         api._press_door.return_value = "door-pressed"
-        coop = SmartCoop.from_api(
-            {"id": "coop-1", "userId": "user-1", "isOnline": True}, api
-        )
+        coop = SmartCoop.from_api({"id": "coop-1", "userId": "user-1", "isOnline": True}, api)
 
         self.assertEqual(await coop.door.press(), "door-pressed")
         api._press_door.assert_awaited_once_with("coop-1")
@@ -98,9 +96,7 @@ class SmartCoopDoorTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_wait_and_target_state_errors(self) -> None:
         api = AsyncMock()
-        coop = SmartCoop.from_api(
-            {"id": "coop-1", "userId": "user-1", "isOnline": True}, api
-        )
+        coop = SmartCoop.from_api({"id": "coop-1", "userId": "user-1", "isOnline": True}, api)
 
         with self.assertRaises(TimeoutError):
             await coop.door.wait_for_state(DoorState.OPEN, timeout=0)

@@ -14,9 +14,7 @@ class KerblIOTTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_load_and_dispatch_smart_coop_update(self) -> None:
         api = AsyncMock(spec=KerblIOTApi)
-        first = SmartCoop.from_api(
-            {"id": "coop-1", "userId": "user-1", "isOnline": True}, api
-        )
+        first = SmartCoop.from_api({"id": "coop-1", "userId": "user-1", "isOnline": True}, api)
         updated = SmartCoop.from_api(
             {
                 "id": "coop-1",
@@ -56,9 +54,7 @@ class KerblIOTTest(unittest.IsolatedAsyncioTestCase):
         api.get_smart_coops.return_value = []
         kerbl = KerblIOT(api)
 
-        await kerbl.connect_websocket(
-            reconnection_attempts=3, reconnection_delay=2.0
-        )
+        await kerbl.connect_websocket(reconnection_attempts=3, reconnection_delay=2.0)
 
         api.connect_websocket.assert_awaited_once_with(
             [],
@@ -69,9 +65,7 @@ class KerblIOTTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_availability_requires_online_device_and_connected_websocket(self) -> None:
         api = AsyncMock(spec=KerblIOTApi)
-        coop = SmartCoop.from_api(
-            {"id": "coop-1", "userId": "user-1", "isOnline": True}, api
-        )
+        coop = SmartCoop.from_api({"id": "coop-1", "userId": "user-1", "isOnline": True}, api)
         api.get_smart_coops.return_value = [coop]
         api.get_smart_coop_logs.return_value = []
         kerbl = KerblIOT(api)
@@ -92,9 +86,7 @@ class KerblIOTTest(unittest.IsolatedAsyncioTestCase):
         callback.assert_any_await(coop, True)
 
         await kerbl._handle_smart_coop_update(
-            SmartCoop.from_api(
-                {"id": "coop-1", "userId": "user-1", "isOnline": False}, api
-            )
+            SmartCoop.from_api({"id": "coop-1", "userId": "user-1", "isOnline": False}, api)
         )
         self.assertFalse(kerbl.is_smart_coop_available("coop-1"))
 
@@ -103,9 +95,7 @@ class KerblIOTTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_load_refreshes_and_caches_smart_coop_logs(self) -> None:
         api = AsyncMock(spec=KerblIOTApi)
-        coop = SmartCoop.from_api(
-            {"id": "coop-1", "userId": "user-1", "isOnline": True}, api
-        )
+        coop = SmartCoop.from_api({"id": "coop-1", "userId": "user-1", "isOnline": True}, api)
         api.get_smart_coops.return_value = [coop]
         api.get_smart_coop_logs.return_value = ["log-entry"]
         callback = AsyncMock()
@@ -225,9 +215,7 @@ class KerblIOTTest(unittest.IsolatedAsyncioTestCase):
     async def test_new_update_replacement_and_task_cancellation(self) -> None:
         api = AsyncMock(spec=KerblIOTApi)
         kerbl = KerblIOT(api, log_refresh_delay=60)
-        coop = SmartCoop.from_api(
-            {"id": "coop-1", "userId": "user-1", "isOnline": True}, api
-        )
+        coop = SmartCoop.from_api({"id": "coop-1", "userId": "user-1", "isOnline": True}, api)
         await kerbl._handle_smart_coop_update(coop)
         first_task = kerbl._log_refresh_tasks["coop-1"]
         kerbl._schedule_log_refresh("coop-1")
@@ -272,9 +260,7 @@ class KerblIOTTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_log_callbacks_and_background_refresh_failure(self) -> None:
         api = AsyncMock(spec=KerblIOTApi)
-        coop = SmartCoop.from_api(
-            {"id": "coop-1", "userId": "user-1", "isOnline": True}, api
-        )
+        coop = SmartCoop.from_api({"id": "coop-1", "userId": "user-1", "isOnline": True}, api)
         api.get_smart_coops.return_value = [coop]
         api.get_smart_coop_logs.return_value = []
         callback = AsyncMock()

@@ -2,10 +2,10 @@
 
 import argparse
 import asyncio
-from datetime import datetime
 import os
-from pathlib import Path
 import sys
+from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -49,9 +49,7 @@ async def main() -> None:
     email = os.environ.get("KERBL_EMAIL")
     password = os.environ.get("KERBL_PASSWORD")
     if not email or not password:
-        raise SystemExit(
-            "Set KERBL_EMAIL and KERBL_PASSWORD before running this script."
-        )
+        raise SystemExit("Set KERBL_EMAIL and KERBL_PASSWORD before running this script.")
 
     async with KerblIOT(KerblIOTApi(email=email, password=password)) as kerbl:
         kerbl.register_smart_coop_update_callback(print_smart_coop_update)
@@ -60,7 +58,10 @@ async def main() -> None:
         if not kerbl.api.websocket_connected:
             raise RuntimeError("Kerbl WebSocket could not be connected.")
         print("WebSocket connected.", flush=True)
-        print("Subscribed SmartCoops: " + ", ".join(coop.name for coop in kerbl.smart_coops), flush=True)
+        print(
+            "Subscribed SmartCoops: " + ", ".join(coop.name for coop in kerbl.smart_coops),
+            flush=True,
+        )
         print("Listening for SmartCoop updates. Press Ctrl+C to stop.", flush=True)
         await asyncio.Event().wait()
 

@@ -89,13 +89,9 @@ class SmartCoopFeederTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(feeder.amount_per_feeding_intervals, [1])
 
     def test_feeder_updates_in_place(self) -> None:
-        feeder = SmartCoopFeeder.from_api(
-            {"id": "before", "feedingInProgress": False}
-        )
+        feeder = SmartCoopFeeder.from_api({"id": "before", "feedingInProgress": False})
 
-        feeder.update_from_api(
-            SmartCoopFeeder.from_api({"id": "after", "feedingInProgress": True})
-        )
+        feeder.update_from_api(SmartCoopFeeder.from_api({"id": "after", "feedingInProgress": True}))
 
         self.assertEqual(feeder.id, "after")
         self.assertTrue(feeder.feeding_in_progress)
@@ -123,9 +119,7 @@ class SmartCoopFeederTest(unittest.IsolatedAsyncioTestCase):
     async def test_feeder_command_delegates_to_attached_client(self) -> None:
         api = AsyncMock()
         api._press_feeder.return_value = "feeder-pressed"
-        coop = SmartCoop.from_api(
-            {"id": "coop-1", "userId": "user-1", "isOnline": True}, api
-        )
+        coop = SmartCoop.from_api({"id": "coop-1", "userId": "user-1", "isOnline": True}, api)
 
         self.assertEqual(await coop.feeder.press(), "feeder-pressed")
         api._press_feeder.assert_awaited_once_with("coop-1")

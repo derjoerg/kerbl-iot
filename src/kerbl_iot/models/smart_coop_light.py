@@ -37,20 +37,20 @@ class SmartCoopLight(SmartCoopComponentMixin):
         smart_coop = self._require_smart_coop()
         return await smart_coop._require_api()._press_light(smart_coop.id)
 
-    async def turn_on(self) -> "SmartCoop":
+    async def turn_on(self) -> SmartCoop:
         """Turn the light on and wait for state confirmation."""
         return await self._set_state(True)
 
-    async def turn_off(self) -> "SmartCoop":
+    async def turn_off(self) -> SmartCoop:
         """Turn the light off and wait for state confirmation."""
         return await self._set_state(False)
 
-    async def wait_for_state(self, is_on: bool, timeout: float = 30.0) -> "SmartCoop":
+    async def wait_for_state(self, is_on: bool, timeout: float = 30.0) -> SmartCoop:
         """Wait for the light to report the expected on/off state."""
         smart_coop = self._require_smart_coop()
         return await smart_coop._wait_for(lambda: self.is_on is is_on, timeout)
 
-    def update_from_api(self, light: "SmartCoopLight") -> None:
+    def update_from_api(self, light: SmartCoopLight) -> None:
         """Update this component in place from a parsed API component."""
         copy_dataclass_fields(self, light)
 
@@ -61,7 +61,7 @@ class SmartCoopLight(SmartCoopComponentMixin):
         return diagnostics
 
     @classmethod
-    def from_api(cls, data: dict[str, Any] | None) -> "SmartCoopLight":
+    def from_api(cls, data: dict[str, Any] | None) -> SmartCoopLight:
         """Create a light component from the nested ``light`` payload."""
         data = data or {}
         return cls(
@@ -74,7 +74,7 @@ class SmartCoopLight(SmartCoopComponentMixin):
             closing_mode=data.get("closingMode"),
         )
 
-    async def _set_state(self, is_on: bool) -> "SmartCoop":
+    async def _set_state(self, is_on: bool) -> SmartCoop:
         smart_coop = self._require_smart_coop()
         async with smart_coop._command_lock:
             await smart_coop.refresh_state()
@@ -84,4 +84,3 @@ class SmartCoopLight(SmartCoopComponentMixin):
                 return smart_coop
             await self.press()
             return await self.wait_for_state(is_on)
-

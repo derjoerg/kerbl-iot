@@ -22,7 +22,7 @@ class SmartCoopWaterHeater:
         """Return whether the water heater reports a water temperature."""
         return self.water_temperature is not None
 
-    def update_from_api(self, water_heater: "SmartCoopWaterHeater") -> None:
+    def update_from_api(self, water_heater: SmartCoopWaterHeater) -> None:
         """Update this component in place from a parsed API component."""
         copy_dataclass_fields(self, water_heater)
 
@@ -33,7 +33,7 @@ class SmartCoopWaterHeater:
         return diagnostics
 
     @classmethod
-    def from_api(cls, data: dict[str, Any] | None) -> "SmartCoopWaterHeater":
+    def from_api(cls, data: dict[str, Any] | None) -> SmartCoopWaterHeater:
         """Create a water heater component from the nested ``waterHeater`` payload."""
         data = data or {}
         return cls(

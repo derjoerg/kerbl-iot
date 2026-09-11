@@ -23,7 +23,7 @@ class SmartCoopBrightness:
         """Return whether brightness data is currently available."""
         return self.current_brightness is not None
 
-    def update_from_api(self, brightness: "SmartCoopBrightness") -> None:
+    def update_from_api(self, brightness: SmartCoopBrightness) -> None:
         """Update this component in place from a parsed API component."""
         copy_dataclass_fields(self, brightness)
 
@@ -34,7 +34,7 @@ class SmartCoopBrightness:
         return diagnostics
 
     @classmethod
-    def from_api(cls, data: dict[str, Any] | None) -> "SmartCoopBrightness":
+    def from_api(cls, data: dict[str, Any] | None) -> SmartCoopBrightness:
         """Create a brightness component from the nested ``brightness`` payload."""
         data = data or {}
         return cls(

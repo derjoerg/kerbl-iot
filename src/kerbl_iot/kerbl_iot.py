@@ -28,9 +28,7 @@ class KerblIOT:
         self._smart_coop_logs: dict[str, list[SmartCoopLog]] = {}
         self._log_refresh_tasks: dict[str, asyncio.Task[None]] = {}
         self._websocket_connected = False
-        self._availability_callbacks: list[
-            Callable[[SmartCoop, bool], Awaitable[None]]
-        ] = []
+        self._availability_callbacks: list[Callable[[SmartCoop, bool], Awaitable[None]]] = []
         self.api.register_smart_coop_update_callback(self._handle_smart_coop_update)
         self.api.register_socket_connect_callback(self._handle_socket_connect)
         self.api.register_socket_disconnect_callback(self._handle_socket_disconnect)
@@ -50,9 +48,7 @@ class KerblIOT:
             for smart_coop_id, smart_coop in self._smart_coops.items()
             if smart_coop_id in loaded_ids
         }
-        await asyncio.gather(
-            *(self.refresh_smart_coop_logs(coop_id) for coop_id in loaded_ids)
-        )
+        await asyncio.gather(*(self.refresh_smart_coop_logs(coop_id) for coop_id in loaded_ids))
 
     async def __aenter__(self) -> "KerblIOT":
         """Authenticate, load devices, and return the coordinator."""
@@ -111,10 +107,7 @@ class KerblIOT:
     def to_diagnostics(self) -> dict[str, Any]:
         """Return a JSON-compatible diagnostic snapshot of loaded state."""
         return {
-            "smart_coops": [
-                smart_coop.to_diagnostics()
-                for smart_coop in self.smart_coops
-            ],
+            "smart_coops": [smart_coop.to_diagnostics() for smart_coop in self.smart_coops],
             "smart_coop_logs": {
                 smart_coop_id: [log.to_diagnostics() for log in logs]
                 for smart_coop_id, logs in self._smart_coop_logs.items()
@@ -210,9 +203,7 @@ class KerblIOT:
         task = asyncio.create_task(self._refresh_logs_after_delay(smart_coop_id))
         self._log_refresh_tasks[smart_coop_id] = task
         task.add_done_callback(
-            lambda completed_task: self._discard_log_refresh_task(
-                smart_coop_id, completed_task
-            )
+            lambda completed_task: self._discard_log_refresh_task(smart_coop_id, completed_task)
         )
 
     async def _refresh_logs_after_delay(self, smart_coop_id: str) -> None:
