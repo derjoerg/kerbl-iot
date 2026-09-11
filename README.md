@@ -30,3 +30,27 @@ async def main() -> None:
 
 asyncio.run(main())
 ```
+
+## Error reason reference
+
+`SmartCoopLog` exposes the API's raw `error_key` and `error_code`. Applications
+should translate the key in their own presentation layer. The following table
+preserves the German translations previously included in this library for
+reference:
+
+| API error key | Former German translation |
+| --- | --- |
+| `errorReason.doorLocked` | Klappe verriegelt |
+| `errorReason.doorClosingSoon` | Klappe schliesst bald |
+| `errorReason.feederLocked` | Futterautomat gesperrt |
+| `errorReason.batteryLow` | Akku schwach |
+| `errorReason.waterHeaterActive` | Wasserheizung aktiv |
+| `errorReason.waterEmpty` | Wasser leer |
+| `errorReason.feederError` | Futterautomatenstoerung |
+| `errorReason.feedEmpty` | Futter leer |
+| `errorReason.batteryEmpty` | Akku leer |
+| `errorReason.doorError` | Klappenstoerung |
+| `errorReason.waterTemperatureLow` | Wassertemperatur zu niedrig |
+| `errorReason.externalLightError` | Fremdlichtstoerung |
+| `errorReason.timeError` | Uhrzeit muss eingestellt werden |
+| `errorReason.flashError` | Flash-Fehler |

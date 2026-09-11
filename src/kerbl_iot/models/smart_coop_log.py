@@ -7,24 +7,6 @@ from datetime import datetime, timezone
 from typing import Any
 
 
-ERROR_REASON_TRANSLATIONS = {
-    "errorReason.doorLocked": "Klappe verriegelt",
-    "errorReason.doorClosingSoon": "Klappe schliesst bald",
-    "errorReason.feederLocked": "Futterautomat gesperrt",
-    "errorReason.batteryLow": "Akku schwach",
-    "errorReason.waterHeaterActive": "Wasserheizung aktiv",
-    "errorReason.waterEmpty": "Wasser leer",
-    "errorReason.feederError": "Futterautomatenstoerung",
-    "errorReason.feedEmpty": "Futter leer",
-    "errorReason.batteryEmpty": "Akku leer",
-    "errorReason.doorError": "Klappenstoerung",
-    "errorReason.waterTemperatureLow": "Wassertemperatur zu niedrig",
-    "errorReason.externalLightError": "Fremdlichtstoerung",
-    "errorReason.timeError": "Uhrzeit muss eingestellt werden",
-    "errorReason.flashError": "Flash-Fehler",
-}
-
-
 @dataclass(frozen=True, slots=True)
 class SmartCoopLog:
     """A SmartCoop error or informational log entry."""
@@ -37,11 +19,6 @@ class SmartCoopLog:
     level: str
     occurred_at: datetime | None
     received_at: datetime
-
-    @property
-    def error_message(self) -> str:
-        """Return the local German error text, or the API key if unknown."""
-        return ERROR_REASON_TRANSLATIONS.get(self.error_key, self.error_key)
 
     @property
     def timestamp_display(self) -> str:
@@ -58,7 +35,6 @@ class SmartCoopLog:
             "active": self.active,
             "error_code": self.error_code,
             "error_key": self.error_key,
-            "error_message": self.error_message,
             "level": self.level,
             "occurred_at": self.occurred_at.isoformat() if self.occurred_at else None,
             "received_at": self.received_at.isoformat(),

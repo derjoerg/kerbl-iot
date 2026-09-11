@@ -103,9 +103,10 @@ class KerblIOTTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(diagnostics["smart_coops"][0]["id"], "coop-1")
         self.assertEqual(diagnostics["smart_coops"][0]["door"]["state"], "OPEN")
         self.assertEqual(
-            diagnostics["smart_coop_logs"]["coop-1"][0]["error_message"],
-            "Futter leer",
+            diagnostics["smart_coop_logs"]["coop-1"][0]["error_key"],
+            "errorReason.feedEmpty",
         )
+        self.assertEqual(diagnostics["smart_coop_logs"]["coop-1"][0]["error_code"], 128)
 
     async def test_socket_error_change_debounces_log_refresh(self) -> None:
         api = AsyncMock(spec=KerblIOTApi)

@@ -24,7 +24,6 @@ class SmartCoopLogTest(unittest.TestCase):
 
         self.assertEqual(log.error_code, 128)
         self.assertEqual(log.error_key, "errorReason.feedEmpty")
-        self.assertEqual(log.error_message, "Futter leer")
         self.assertEqual(log.timestamp_display, "2026-09-09 07:23")
         self.assertIsNotNone(log.occurred_at)
         self.assertIsNotNone(log.received_at.tzinfo)
@@ -34,7 +33,7 @@ class SmartCoopLogTest(unittest.TestCase):
         self.assertEqual(diagnostics["date"], "2026.09.09")
         self.assertEqual(diagnostics["error_code"], 128)
         self.assertEqual(diagnostics["error_key"], "errorReason.feedEmpty")
-        self.assertEqual(diagnostics["error_message"], "Futter leer")
+        self.assertNotIn("error_message", diagnostics)
         self.assertEqual(diagnostics["level"], "error")
         self.assertEqual(diagnostics["occurred_at"], "2026-09-09T07:23:00")
         self.assertIsInstance(diagnostics["received_at"], str)
@@ -74,4 +73,4 @@ class SmartCoopLogTest(unittest.TestCase):
         )
 
         self.assertIsNone(log.occurred_at)
-        self.assertEqual(log.error_message, "errorReason.unknown")
+        self.assertEqual(log.error_key, "errorReason.unknown")

@@ -180,7 +180,7 @@ async def main() -> None:
                 for log in active_logs:
                     print(
                         f"  {log.timestamp_display} [{log.level}] "
-                        f"{log.error_message} "
+                        f"{log.error_key} "
                         f"(code: {log.error_code}; {log.error_key})"
                     )
 
