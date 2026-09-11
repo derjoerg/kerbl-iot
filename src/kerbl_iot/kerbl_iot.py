@@ -176,6 +176,7 @@ class KerblIOT:
 
     async def _handle_socket_connect(self) -> None:
         """Mark the update socket available after an initial connect or reconnect."""
+        await self.load()
         was_connected = self._websocket_connected
         self._websocket_connected = True
         if not was_connected:

@@ -69,6 +69,7 @@ class KerblIOTTest(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(kerbl.is_smart_coop_available("coop-1"))
         callback.assert_any_await(coop, False)
         await kerbl._handle_socket_connect()
+        self.assertEqual(api.get_smart_coops.await_count, 2)
         self.assertTrue(kerbl.is_smart_coop_available("coop-1"))
         callback.assert_any_await(coop, True)
 
