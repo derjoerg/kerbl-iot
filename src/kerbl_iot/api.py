@@ -233,9 +233,18 @@ class KerblIOTApi:
         )
 
     async def connect_websocket(
-        self, smart_coops: list[SmartCoop], debug: bool = False
+        self,
+        smart_coops: list[SmartCoop],
+        debug: bool = False,
+        *,
+        reconnection_attempts: int = 0,
+        reconnection_delay: float = 1.0,
     ) -> None:
         """Connect to Socket.IO and subscribe to updates for all SmartCoops."""
+        if reconnection_attempts < 0:
+            raise ValueError("reconnection_attempts must not be negative.")
+        if reconnection_delay < 0:
+            raise ValueError("reconnection_delay must not be negative.")
         if self.websocket_connected:
             return
 
@@ -245,6 +254,8 @@ class KerblIOTApi:
         session = self._require_session()
         socket = socketio.AsyncClient(
             reconnection=True,
+            reconnection_attempts=reconnection_attempts,
+            reconnection_delay=reconnection_delay,
             logger=debug,
             engineio_logger=debug,
         )

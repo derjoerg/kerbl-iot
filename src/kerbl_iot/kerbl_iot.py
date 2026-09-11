@@ -64,11 +64,22 @@ class KerblIOT:
         """Cancel coordinator work and close its API transport."""
         await self.async_close()
 
-    async def connect_websocket(self, debug: bool = False) -> None:
+    async def connect_websocket(
+        self,
+        debug: bool = False,
+        *,
+        reconnection_attempts: int = 0,
+        reconnection_delay: float = 1.0,
+    ) -> None:
         """Connect the API WebSocket after devices were loaded."""
         if not self._smart_coops:
             await self.load()
-        await self.api.connect_websocket(self.smart_coops, debug=debug)
+        await self.api.connect_websocket(
+            self.smart_coops,
+            debug=debug,
+            reconnection_attempts=reconnection_attempts,
+            reconnection_delay=reconnection_delay,
+        )
         if not self._websocket_connected:
             self._websocket_connected = True
             await self._notify_availability_changes()

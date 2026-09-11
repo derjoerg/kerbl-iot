@@ -303,6 +303,37 @@ class KerblIOTApiTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(socket.emitted[-1][0], "leave_room")
         self.assertTrue(socket.disconnected)
 
+    async def test_socket_reconnection_options_are_forwarded(self) -> None:
+        session = FakeSession({})
+        session.headers["Authorization"] = "Bearer access"
+        api = KerblIOTApi("test@example.com", "password")
+        api._session = session  # type: ignore[assignment]
+        socket = FakeSocket()
+
+        with patch("kerbl_iot.api.socketio.AsyncClient", return_value=socket) as client:
+            await api.connect_websocket(
+                [type("Coop", (), {"id": "coop-1", "user_id": "user-1"})()],
+                reconnection_attempts=4,
+                reconnection_delay=2.5,
+            )
+
+        client.assert_called_once_with(
+            reconnection=True,
+            reconnection_attempts=4,
+            reconnection_delay=2.5,
+            logger=False,
+            engineio_logger=False,
+        )
+
+    async def test_socket_reconnection_options_reject_negative_values(self) -> None:
+        api = KerblIOTApi("test@example.com", "password")
+        coop = type("Coop", (), {"id": "coop-1", "user_id": "user-1"})()
+
+        with self.assertRaises(ValueError):
+            await api.connect_websocket([coop], reconnection_attempts=-1)
+        with self.assertRaises(ValueError):
+            await api.connect_websocket([coop], reconnection_delay=-1)
+
     async def test_socket_skip_failure_and_callbacks(self) -> None:
         api = KerblIOTApi("test@example.com", "password")
         await api.connect_websocket([])

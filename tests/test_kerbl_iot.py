@@ -47,7 +47,25 @@ class KerblIOTTest(unittest.IsolatedAsyncioTestCase):
         await kerbl.connect_websocket(debug=True)
 
         api.get_smart_coops.assert_awaited_once()
-        api.connect_websocket.assert_awaited_once_with([], debug=True)
+        api.connect_websocket.assert_awaited_once_with(
+            [], debug=True, reconnection_attempts=0, reconnection_delay=1.0
+        )
+
+    async def test_connect_forwards_socket_reconnection_options(self) -> None:
+        api = AsyncMock(spec=KerblIOTApi)
+        api.get_smart_coops.return_value = []
+        kerbl = KerblIOT(api)
+
+        await kerbl.connect_websocket(
+            reconnection_attempts=3, reconnection_delay=2.0
+        )
+
+        api.connect_websocket.assert_awaited_once_with(
+            [],
+            debug=False,
+            reconnection_attempts=3,
+            reconnection_delay=2.0,
+        )
 
     async def test_availability_requires_online_device_and_connected_websocket(self) -> None:
         api = AsyncMock(spec=KerblIOTApi)
