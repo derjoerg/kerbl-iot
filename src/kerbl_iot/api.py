@@ -48,6 +48,8 @@ class KerblIOTApi:
         self._socket_event_callbacks: list[
             Callable[[str, Any], Awaitable[None]]
         ] = []
+        self._socket_disconnect_callbacks: list[Callable[[], Awaitable[None]]] = []
+        self._socket_connect_callbacks: list[Callable[[], Awaitable[None]]] = []
         self._subscribed_device_ids: list[str] = []
         self._socket_user_id: str | None = None
 
@@ -243,6 +245,7 @@ class KerblIOTApi:
         socket.on("smart-coop_update", self._handle_smart_coop_update)
         socket.on("*", self._handle_socket_event)
         socket.on("connect", self._handle_socket_connect)
+        socket.on("disconnect", self._handle_socket_disconnect)
         try:
             await socket.connect(
                 SOCKET_URL,
@@ -275,6 +278,8 @@ class KerblIOTApi:
                     "userId": self._socket_user_id,
                 },
             )
+        for callback in self._socket_connect_callbacks:
+            await callback()
 
     @property
     def websocket_connected(self) -> bool:
@@ -293,6 +298,18 @@ class KerblIOTApi:
         """Register an asynchronous callback for all Socket.IO server events."""
         self._socket_event_callbacks.append(callback)
 
+    def register_socket_disconnect_callback(
+        self, callback: Callable[[], Awaitable[None]]
+    ) -> None:
+        """Register an asynchronous callback for Socket.IO disconnects."""
+        self._socket_disconnect_callbacks.append(callback)
+
+    def register_socket_connect_callback(
+        self, callback: Callable[[], Awaitable[None]]
+    ) -> None:
+        """Register an asynchronous callback for Socket.IO connects and reconnects."""
+        self._socket_connect_callbacks.append(callback)
+
     async def _handle_smart_coop_update(self, data: dict[str, Any]) -> None:
         """Forward a parsed SmartCoop state update from Socket.IO."""
         smart_coop = SmartCoop.from_api(data, self)
@@ -303,6 +320,11 @@ class KerblIOTApi:
         """Forward Socket.IO events to registered diagnostic callbacks."""
         for callback in self._socket_event_callbacks:
             await callback(event, data)
+
+    async def _handle_socket_disconnect(self) -> None:
+        """Notify subscribers after Socket.IO loses its connection."""
+        for callback in self._socket_disconnect_callbacks:
+            await callback()
 
     def _require_session(self) -> aiohttp.ClientSession:
         if self._session is None:

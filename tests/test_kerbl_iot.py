@@ -49,6 +49,36 @@ class KerblIOTTest(unittest.IsolatedAsyncioTestCase):
         api.get_smart_coops.assert_awaited_once()
         api.connect_websocket.assert_awaited_once_with([], debug=True)
 
+    async def test_availability_requires_online_device_and_connected_websocket(self) -> None:
+        api = AsyncMock(spec=KerblIOTApi)
+        coop = SmartCoop.from_api(
+            {"id": "coop-1", "userId": "user-1", "isOnline": True}, api
+        )
+        api.get_smart_coops.return_value = [coop]
+        api.get_smart_coop_logs.return_value = []
+        kerbl = KerblIOT(api)
+        callback = AsyncMock()
+        kerbl.register_availability_callback(callback)
+
+        await kerbl.load()
+        self.assertFalse(kerbl.is_smart_coop_available("coop-1"))
+        await kerbl.connect_websocket()
+        self.assertTrue(kerbl.is_smart_coop_available("coop-1"))
+
+        await kerbl._handle_socket_disconnect()
+        self.assertFalse(kerbl.is_smart_coop_available("coop-1"))
+        callback.assert_any_await(coop, False)
+        await kerbl._handle_socket_connect()
+        self.assertTrue(kerbl.is_smart_coop_available("coop-1"))
+        callback.assert_any_await(coop, True)
+
+        await kerbl._handle_smart_coop_update(
+            SmartCoop.from_api(
+                {"id": "coop-1", "userId": "user-1", "isOnline": False}, api
+            )
+        )
+        self.assertFalse(kerbl.is_smart_coop_available("coop-1"))
+
     async def test_load_refreshes_and_caches_smart_coop_logs(self) -> None:
         api = AsyncMock(spec=KerblIOTApi)
         coop = SmartCoop.from_api(

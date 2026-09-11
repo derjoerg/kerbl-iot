@@ -27,7 +27,13 @@ class KerblIOT:
         ] = []
         self._smart_coop_logs: dict[str, list[SmartCoopLog]] = {}
         self._log_refresh_tasks: dict[str, asyncio.Task[None]] = {}
+        self._websocket_connected = False
+        self._availability_callbacks: list[
+            Callable[[SmartCoop, bool], Awaitable[None]]
+        ] = []
         self.api.register_smart_coop_update_callback(self._handle_smart_coop_update)
+        self.api.register_socket_connect_callback(self._handle_socket_connect)
+        self.api.register_socket_disconnect_callback(self._handle_socket_disconnect)
 
     async def load(self) -> None:
         """Load all supported devices from the API."""
@@ -63,6 +69,20 @@ class KerblIOT:
         if not self._smart_coops:
             await self.load()
         await self.api.connect_websocket(self.smart_coops, debug=debug)
+        if not self._websocket_connected:
+            self._websocket_connected = True
+            await self._notify_availability_changes()
+
+    def is_smart_coop_available(self, smart_coop_id: str) -> bool:
+        """Return whether a SmartCoop is online and its update socket is connected."""
+        smart_coop = self.get_smart_coop(smart_coop_id)
+        return bool(smart_coop and smart_coop.online and self._websocket_connected)
+
+    def register_availability_callback(
+        self, callback: Callable[[SmartCoop, bool], Awaitable[None]]
+    ) -> None:
+        """Register a callback for changes to a SmartCoop's availability."""
+        self._availability_callbacks.append(callback)
 
     @property
     def smart_coops(self) -> list[SmartCoop]:
@@ -122,7 +142,11 @@ class KerblIOT:
             task.cancel()
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
+        was_connected = self._websocket_connected
+        self._websocket_connected = False
         await self.api.close()
+        if was_connected:
+            await self._notify_availability_changes()
 
     async def _handle_smart_coop_update(self, smart_coop: SmartCoop) -> None:
         """Store a WebSocket SmartCoop update and refresh logs when needed."""
@@ -133,12 +157,38 @@ class KerblIOT:
             previous_signature = None
         else:
             previous_signature = self._error_signature(existing)
+            previous_available = self.is_smart_coop_available(existing.id)
             await existing.update_from_api(smart_coop)
             current = existing
         for callback in self._smart_coop_callbacks:
             await callback(current)
         if previous_signature != self._error_signature(current):
             self._schedule_log_refresh(current.id)
+        if existing is not None and previous_available != self.is_smart_coop_available(current.id):
+            await self._notify_availability(current)
+
+    async def _handle_socket_disconnect(self) -> None:
+        """Mark all SmartCoops unavailable until the socket reconnects."""
+        was_connected = self._websocket_connected
+        self._websocket_connected = False
+        if was_connected:
+            await self._notify_availability_changes()
+
+    async def _handle_socket_connect(self) -> None:
+        """Mark the update socket available after an initial connect or reconnect."""
+        was_connected = self._websocket_connected
+        self._websocket_connected = True
+        if not was_connected:
+            await self._notify_availability_changes()
+
+    async def _notify_availability_changes(self) -> None:
+        for smart_coop in self.smart_coops:
+            await self._notify_availability(smart_coop)
+
+    async def _notify_availability(self, smart_coop: SmartCoop) -> None:
+        available = self.is_smart_coop_available(smart_coop.id)
+        for callback in self._availability_callbacks:
+            await callback(smart_coop, available)
 
     def _schedule_log_refresh(self, smart_coop_id: str) -> None:
         """Schedule one debounced authoritative log refresh per SmartCoop."""
