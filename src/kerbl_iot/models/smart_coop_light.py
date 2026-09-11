@@ -2,17 +2,18 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from .base import CommandResult
+from .smart_coop_component import SmartCoopComponentMixin
 
 if TYPE_CHECKING:
     from .smart_coop import SmartCoop
 
 
 @dataclass(slots=True)
-class SmartCoopLight:
+class SmartCoopLight(SmartCoopComponentMixin):
     """Light component values from a SmartCoop payload."""
 
     id: str | None
@@ -22,7 +23,7 @@ class SmartCoopLight:
     mode: int | None
     dark_time: str | None
     closing_mode: int | None
-    _smart_coop: "SmartCoop | None" = field(default=None, repr=False, compare=False)
+    _component_name = "Light"
 
     @property
     def is_on(self) -> bool | None:
@@ -48,10 +49,6 @@ class SmartCoopLight:
         """Wait for the light to report the expected on/off state."""
         smart_coop = self._require_smart_coop()
         return await smart_coop._wait_for(lambda: self.is_on is is_on, timeout)
-
-    def attach(self, smart_coop: "SmartCoop") -> None:
-        """Attach this component to its owning SmartCoop."""
-        self._smart_coop = smart_coop
 
     def update_from_api(self, light: "SmartCoopLight") -> None:
         """Update this component in place from a parsed API component."""
@@ -99,7 +96,3 @@ class SmartCoopLight:
             await self.press()
             return await self.wait_for_state(is_on)
 
-    def _require_smart_coop(self) -> "SmartCoop":
-        if self._smart_coop is None:
-            raise RuntimeError("Light is not attached to a SmartCoop.")
-        return self._smart_coop

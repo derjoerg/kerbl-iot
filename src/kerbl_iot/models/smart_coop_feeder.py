@@ -3,17 +3,18 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from .base import CommandResult
+from .smart_coop_component import SmartCoopComponentMixin
 
 if TYPE_CHECKING:
     from .smart_coop import SmartCoop
 
 
 @dataclass(slots=True)
-class SmartCoopFeeder:
+class SmartCoopFeeder(SmartCoopComponentMixin):
     """Feeder component values from a SmartCoop payload."""
 
     id: str | None
@@ -30,7 +31,7 @@ class SmartCoopFeeder:
     animal_count: int | None
     amount_per_animal: int | None
     amount_per_feeding_intervals: list[int] | None
-    _smart_coop: "SmartCoop | None" = field(default=None, repr=False, compare=False)
+    _component_name = "Feeder"
 
     async def press(self) -> CommandResult:
         """Press the SmartCoop manual feeder command."""
@@ -45,10 +46,6 @@ class SmartCoopFeeder:
         return await smart_coop._wait_for(
             lambda: self.feeding_in_progress is in_progress, timeout
         )
-
-    def attach(self, smart_coop: "SmartCoop") -> None:
-        """Attach this component to its owning SmartCoop."""
-        self._smart_coop = smart_coop
 
     def update_from_api(self, feeder: "SmartCoopFeeder") -> None:
         """Update this component in place from a parsed API component."""
@@ -102,12 +99,6 @@ class SmartCoopFeeder:
                 data.get("amountPerFeedingIntervals"), int
             ),
         )
-
-    def _require_smart_coop(self) -> "SmartCoop":
-        if self._smart_coop is None:
-            raise RuntimeError("Feeder is not attached to a SmartCoop.")
-        return self._smart_coop
-
 
 def _json_list(value: object, item_type: type) -> list[Any] | None:
     if value is None:

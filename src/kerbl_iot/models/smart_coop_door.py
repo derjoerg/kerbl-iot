@@ -2,18 +2,19 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from .base import CommandResult
 from .door_state import DoorState
+from .smart_coop_component import SmartCoopComponentMixin
 
 if TYPE_CHECKING:
     from .smart_coop import SmartCoop
 
 
 @dataclass(slots=True)
-class SmartCoopDoor:
+class SmartCoopDoor(SmartCoopComponentMixin):
     """Door component values from a SmartCoop payload."""
 
     id: str | None
@@ -29,7 +30,7 @@ class SmartCoopDoor:
     closing_delay_duration: int | None
     weekend_mode: int | None
     weekend_opening_time: str | None
-    _smart_coop: "SmartCoop | None" = field(default=None, repr=False, compare=False)
+    _component_name = "Door"
 
     async def press(self) -> CommandResult:
         """Press the SmartCoop manual door command."""
@@ -50,10 +51,6 @@ class SmartCoopDoor:
         """Wait for the door to report the expected state."""
         smart_coop = self._require_smart_coop()
         return await smart_coop._wait_for(lambda: self.state is state, timeout)
-
-    def attach(self, smart_coop: "SmartCoop") -> None:
-        """Attach this component to its owning SmartCoop."""
-        self._smart_coop = smart_coop
 
     def update_from_api(self, door: "SmartCoopDoor") -> None:
         """Update this component in place from a parsed API component."""
@@ -116,7 +113,3 @@ class SmartCoopDoor:
             await self.press()
             return await self.wait_for_state(state, timeout=120.0)
 
-    def _require_smart_coop(self) -> "SmartCoop":
-        if self._smart_coop is None:
-            raise RuntimeError("Door is not attached to a SmartCoop.")
-        return self._smart_coop
