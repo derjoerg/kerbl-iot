@@ -31,6 +31,17 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
+## Releasing to PyPI
+
+Releases are published automatically by GitHub Actions when a GitHub Release is
+marked as published. Before the first release, configure PyPI Trusted Publishing
+for the `derjoerg/kerbl-iot` repository and the `.github/workflows/publish.yml`
+workflow, using the `pypi` environment.
+
+To create a release, update the `version` in `pyproject.toml`, commit the change,
+create a matching tag such as `v0.1.1`, and publish a GitHub Release for that tag.
+The version must not already exist on PyPI.
+
 ## Error reason reference
 
 `SmartCoopLog` exposes the API's raw `error_key` and `error_code`. Applications
