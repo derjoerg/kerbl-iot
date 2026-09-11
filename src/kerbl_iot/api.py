@@ -138,6 +138,18 @@ class KerblIOTApi:
                     raise
                 raise KerblAuthenticationError("Kerbl token refresh failed.") from error
 
+    def get_tokens(self) -> tuple[str, str]:
+        """Return the access and refresh tokens for persistent storage."""
+        if not self._access_token or not self._refresh_token:
+            raise KerblAuthenticationError("No authentication tokens are available.")
+        return self._access_token, self._refresh_token
+
+    def restore_tokens(self, access_token: str, refresh_token: str) -> None:
+        """Restore tokens from persistent storage without signing in again."""
+        self._set_authentication(
+            {"accessToken": access_token, "refreshToken": refresh_token}
+        )
+
     def _set_authentication(self, authentication: dict[str, Any]) -> None:
         access_token = authentication.get("accessToken")
         refresh_token = authentication.get("refreshToken")

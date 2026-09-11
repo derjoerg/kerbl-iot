@@ -99,6 +99,30 @@ class KerblIOTApiTest(unittest.IsolatedAsyncioTestCase):
 
         self.assertFalse(session.closed)
 
+    async def test_tokens_can_be_exported_and_restored(self) -> None:
+        session = FakeSession({"accessToken": "access", "refreshToken": "refresh"})
+        api = KerblIOTApi("test@example.com", "password", session=session)  # type: ignore[arg-type]
+        await api.login()
+
+        tokens = api.get_tokens()
+        restored_session = FakeSession(
+            {"accessToken": "new-access", "refreshToken": "new-refresh"}
+        )
+        restored_api = KerblIOTApi(
+            "test@example.com", "password", session=restored_session  # type: ignore[arg-type]
+        )
+        restored_api.restore_tokens(*tokens)
+
+        self.assertEqual(tokens, ("access", "refresh"))
+        self.assertEqual(restored_session.headers["Authorization"], "Bearer access")
+        await restored_api.refresh_token()
+        self.assertEqual(restored_api.get_tokens(), ("new-access", "new-refresh"))
+
+    def test_get_tokens_requires_authentication(self) -> None:
+        api = KerblIOTApi("test@example.com", "password")
+        with self.assertRaises(KerblAuthenticationError):
+            api.get_tokens()
+
     async def test_refresh_and_request_error_paths(self) -> None:
         api = KerblIOTApi("test@example.com", "password")
         session = FakeSession({})
