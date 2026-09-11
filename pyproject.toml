@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "kerbl-iot"
-version = "0.1.0"
+version = "0.1.1"
 description = "Async client for the Kerbl IoT web API"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -25,8 +25,8 @@ classifiers = [
     "Topic :: Home Automation",
 ]
 dependencies = [
-    "aiohttp>=3.10.5,<4",
-    "python-socketio[asyncio_client]>=5.11.3,<6",
+    "aiohttp>=3.10,<4",
+    "python-socketio[asyncio_client]>=5.11,<6",
 ]
 
 [project.optional-dependencies]
