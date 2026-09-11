@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from .base import CommandResult
+from .base import CommandResult, copy_dataclass_fields
 from .smart_coop_component import SmartCoopComponentMixin
 
 if TYPE_CHECKING:
@@ -52,11 +52,7 @@ class SmartCoopLight(SmartCoopComponentMixin):
 
     def update_from_api(self, light: "SmartCoopLight") -> None:
         """Update this component in place from a parsed API component."""
-        for attribute in (
-            "id", "current_dim_value", "evening_on_time", "morning_on_time",
-            "mode", "dark_time", "closing_mode",
-        ):
-            setattr(self, attribute, getattr(light, attribute))
+        copy_dataclass_fields(self, light)
 
     def to_diagnostics(self) -> dict[str, Any]:
         """Return a JSON-compatible diagnostic snapshot of this light component."""

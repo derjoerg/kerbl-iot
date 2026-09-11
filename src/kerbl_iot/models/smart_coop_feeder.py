@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from .base import CommandResult
+from .base import CommandResult, copy_dataclass_fields
 from .smart_coop_component import SmartCoopComponentMixin
 
 if TYPE_CHECKING:
@@ -49,14 +49,7 @@ class SmartCoopFeeder(SmartCoopComponentMixin):
 
     def update_from_api(self, feeder: "SmartCoopFeeder") -> None:
         """Update this component in place from a parsed API component."""
-        for attribute in (
-            "id", "start_time", "end_time", "feeding_interval",
-            "interval_start_times", "interval_end_times", "feeding_locked",
-            "feeding_active", "has_feed_sensor", "is_feed_full",
-            "feeding_in_progress", "animal_count", "amount_per_animal",
-            "amount_per_feeding_intervals",
-        ):
-            setattr(self, attribute, getattr(feeder, attribute))
+        copy_dataclass_fields(self, feeder)
 
     def to_diagnostics(self) -> dict[str, Any]:
         """Return a JSON-compatible diagnostic snapshot of this feeder component."""

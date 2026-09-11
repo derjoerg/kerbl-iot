@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from .base import CommandResult
+from .base import CommandResult, copy_dataclass_fields
 from .door_state import DoorState
 from .smart_coop_component import SmartCoopComponentMixin
 
@@ -54,13 +54,7 @@ class SmartCoopDoor(SmartCoopComponentMixin):
 
     def update_from_api(self, door: "SmartCoopDoor") -> None:
         """Update this component in place from a parsed API component."""
-        for attribute in (
-            "id", "has_no_door", "state", "closes_in_minutes", "type",
-            "opening_mode", "relative_opening_brightness", "opening_time",
-            "closing_mode", "relative_closing_brightness",
-            "closing_delay_duration", "weekend_mode", "weekend_opening_time",
-        ):
-            setattr(self, attribute, getattr(door, attribute))
+        copy_dataclass_fields(self, door)
 
     def to_diagnostics(self) -> dict[str, Any]:
         """Return a JSON-compatible diagnostic snapshot of this door component."""

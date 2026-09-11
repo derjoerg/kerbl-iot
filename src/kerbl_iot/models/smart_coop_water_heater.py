@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from .base import copy_dataclass_fields
+
 
 @dataclass(slots=True)
 class SmartCoopWaterHeater:
@@ -22,10 +24,7 @@ class SmartCoopWaterHeater:
 
     def update_from_api(self, water_heater: "SmartCoopWaterHeater") -> None:
         """Update this component in place from a parsed API component."""
-        for attribute in (
-            "id", "water_temperature", "water_sensor_state", "has_water_sensor",
-        ):
-            setattr(self, attribute, getattr(water_heater, attribute))
+        copy_dataclass_fields(self, water_heater)
 
     def to_diagnostics(self) -> dict[str, Any]:
         """Return a JSON-compatible diagnostic snapshot of this water heater component."""

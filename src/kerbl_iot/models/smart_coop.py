@@ -7,7 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from .base import CommandResult
+from .base import CommandResult, copy_dataclass_fields
 from .smart_coop_brightness import SmartCoopBrightness
 from .smart_coop_door import SmartCoopDoor
 from .smart_coop_feeder import SmartCoopFeeder
@@ -59,11 +59,7 @@ class SmartCoop:
 
     async def update_from_api(self, smart_coop: "SmartCoop") -> None:
         """Update this instance in place from an API or Socket.IO state update."""
-        for attribute in (
-            "user_id", "name", "online", "firmware_version", "air_temperature",
-            "current_error_reason", "error_reason_history",
-        ):
-            setattr(self, attribute, getattr(smart_coop, attribute))
+        copy_dataclass_fields(self, smart_coop)
         self.door.update_from_api(smart_coop.door)
         self.feeder.update_from_api(smart_coop.feeder)
         self.water_heater.update_from_api(smart_coop.water_heater)
