@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from .base import CommandResult, copy_dataclass_fields, dataclass_to_diagnostics
 from .door_state import DoorState
+from ..exceptions import KerblStateError
 from .smart_coop_component import SmartCoopComponentMixin
 
 if TYPE_CHECKING:
@@ -90,7 +91,7 @@ class SmartCoopDoor(SmartCoopComponentMixin):
             if self.state is state:
                 return smart_coop
             if self.state not in (DoorState.OPEN, DoorState.CLOSED):
-                raise RuntimeError("Door is not in a stable state.")
+                raise KerblStateError("Door is not in a stable state.")
             await self.press()
             return await self.wait_for_state(state, timeout=120.0)
 

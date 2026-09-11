@@ -3,6 +3,7 @@
 import unittest
 from unittest.mock import AsyncMock, patch
 
+from kerbl_iot import KerblStateError
 from kerbl_iot.models.door_state import DoorState
 from kerbl_iot.models.smart_coop import SmartCoop
 from kerbl_iot.models.smart_coop_door import SmartCoopDoor
@@ -105,7 +106,7 @@ class SmartCoopDoorTest(unittest.IsolatedAsyncioTestCase):
             await coop.door.wait_for_state(DoorState.OPEN, timeout=0)
         with patch.object(SmartCoop, "refresh_state", AsyncMock()):
             coop.door.state = DoorState.OPENING
-            with self.assertRaises(RuntimeError):
+            with self.assertRaises(KerblStateError):
                 await coop.door.close()
 
     async def test_commands_require_an_attached_smart_coop(self) -> None:
