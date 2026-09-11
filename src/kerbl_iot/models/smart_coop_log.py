@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
+from .base import dataclass_to_diagnostics
+
 
 @dataclass(frozen=True, slots=True)
 class SmartCoopLog:
@@ -22,16 +24,7 @@ class SmartCoopLog:
 
     def to_diagnostics(self) -> dict[str, Any]:
         """Return a JSON-compatible diagnostic snapshot of this log entry."""
-        return {
-            "time": self.time,
-            "date": self.date,
-            "active": self.active,
-            "error_code": self.error_code,
-            "error_key": self.error_key,
-            "level": self.level,
-            "occurred_at": self.occurred_at.isoformat() if self.occurred_at else None,
-            "received_at": self.received_at.isoformat(),
-        }
+        return dataclass_to_diagnostics(self)
 
     @classmethod
     def from_api(cls, data: dict[str, Any]) -> "SmartCoopLog":

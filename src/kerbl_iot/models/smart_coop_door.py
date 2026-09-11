@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from .base import CommandResult, copy_dataclass_fields
+from .base import CommandResult, copy_dataclass_fields, dataclass_to_diagnostics
 from .door_state import DoorState
 from .smart_coop_component import SmartCoopComponentMixin
 
@@ -58,22 +58,9 @@ class SmartCoopDoor(SmartCoopComponentMixin):
 
     def to_diagnostics(self) -> dict[str, Any]:
         """Return a JSON-compatible diagnostic snapshot of this door component."""
-        return {
-            "id": self.id,
-            "has_no_door": self.has_no_door,
-            "state": self.state.name if self.state is not None else None,
-            "state_value": int(self.state) if self.state is not None else None,
-            "closes_in_minutes": self.closes_in_minutes,
-            "type": self.type,
-            "opening_mode": self.opening_mode,
-            "relative_opening_brightness": self.relative_opening_brightness,
-            "opening_time": self.opening_time,
-            "closing_mode": self.closing_mode,
-            "relative_closing_brightness": self.relative_closing_brightness,
-            "closing_delay_duration": self.closing_delay_duration,
-            "weekend_mode": self.weekend_mode,
-            "weekend_opening_time": self.weekend_opening_time,
-        }
+        diagnostics = dataclass_to_diagnostics(self)
+        diagnostics["state_value"] = int(self.state) if self.state is not None else None
+        return diagnostics
 
     @classmethod
     def from_api(cls, data: dict[str, Any] | None) -> "SmartCoopDoor":

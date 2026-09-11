@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from .base import copy_dataclass_fields
+from .base import copy_dataclass_fields, dataclass_to_diagnostics
 
 
 @dataclass(slots=True)
@@ -28,13 +28,9 @@ class SmartCoopWaterHeater:
 
     def to_diagnostics(self) -> dict[str, Any]:
         """Return a JSON-compatible diagnostic snapshot of this water heater component."""
-        return {
-            "id": self.id,
-            "water_temperature": self.water_temperature,
-            "water_sensor_state": self.water_sensor_state,
-            "has_water_sensor": self.has_water_sensor,
-            "has_temperature_reading": self.has_temperature_reading,
-        }
+        diagnostics = dataclass_to_diagnostics(self)
+        diagnostics["has_temperature_reading"] = self.has_temperature_reading
+        return diagnostics
 
     @classmethod
     def from_api(cls, data: dict[str, Any] | None) -> "SmartCoopWaterHeater":

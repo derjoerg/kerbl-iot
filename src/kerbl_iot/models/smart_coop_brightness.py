@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from .base import copy_dataclass_fields
+from .base import copy_dataclass_fields, dataclass_to_diagnostics
 
 
 @dataclass(slots=True)
@@ -29,14 +29,9 @@ class SmartCoopBrightness:
 
     def to_diagnostics(self) -> dict[str, Any]:
         """Return a JSON-compatible diagnostic snapshot of this brightness component."""
-        return {
-            "id": self.id,
-            "external_sensor_connected": self.external_sensor_connected,
-            "current_brightness": self.current_brightness,
-            "is_available": self.is_available,
-            "night_duration_start_time": self.night_duration_start_time,
-            "night_duration_end_time": self.night_duration_end_time,
-        }
+        diagnostics = dataclass_to_diagnostics(self)
+        diagnostics["is_available"] = self.is_available
+        return diagnostics
 
     @classmethod
     def from_api(cls, data: dict[str, Any] | None) -> "SmartCoopBrightness":

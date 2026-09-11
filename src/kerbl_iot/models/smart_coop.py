@@ -7,7 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from .base import CommandResult, copy_dataclass_fields
+from .base import CommandResult, copy_dataclass_fields, dataclass_to_diagnostics
 from .smart_coop_brightness import SmartCoopBrightness
 from .smart_coop_door import SmartCoopDoor
 from .smart_coop_feeder import SmartCoopFeeder
@@ -79,21 +79,13 @@ class SmartCoop:
 
     def to_diagnostics(self) -> dict[str, Any]:
         """Return a JSON-compatible diagnostic snapshot of this SmartCoop."""
-        return {
-            "id": self.id,
-            "user_id": self.user_id,
-            "name": self.name,
-            "online": self.online,
-            "firmware_version": self.firmware_version,
-            "air_temperature": self.air_temperature,
-            "current_error_reason": self.current_error_reason,
-            "error_reason_history": self.error_reason_history,
-            "door": self.door.to_diagnostics(),
-            "feeder": self.feeder.to_diagnostics(),
-            "water_heater": self.water_heater.to_diagnostics(),
-            "light": self.light.to_diagnostics(),
-            "brightness": self.brightness.to_diagnostics(),
-        }
+        diagnostics = dataclass_to_diagnostics(self)
+        diagnostics["door"] = self.door.to_diagnostics()
+        diagnostics["feeder"] = self.feeder.to_diagnostics()
+        diagnostics["water_heater"] = self.water_heater.to_diagnostics()
+        diagnostics["light"] = self.light.to_diagnostics()
+        diagnostics["brightness"] = self.brightness.to_diagnostics()
+        return diagnostics
 
     async def _wait_for(
         self, condition: Callable[[], bool], timeout: float
