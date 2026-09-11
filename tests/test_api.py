@@ -7,7 +7,12 @@ from unittest.mock import patch
 import aiohttp
 import socketio
 
-from kerbl_iot import KerblAuthenticationError, KerblConnectionError, KerblIOTApi
+from kerbl_iot import (
+    KerblAuthenticationError,
+    KerblConnectionError,
+    KerblIOTApi,
+    KerblProtocolError,
+)
 
 
 class FakeResponse:
@@ -132,7 +137,7 @@ class KerblIOTApiTest(unittest.IsolatedAsyncioTestCase):
         api._access_token = "access"
         api._refresh_token = "refresh"
         session.errors.append(ValueError("bad json"))
-        with self.assertRaises(KerblAuthenticationError):
+        with self.assertRaises(KerblProtocolError):
             await api.refresh_token()
 
         api._session = FakeSession({})  # type: ignore[assignment]
@@ -142,6 +147,31 @@ class KerblIOTApiTest(unittest.IsolatedAsyncioTestCase):
         api._session.errors.extend([aiohttp.ClientResponseError(None, (), status=401)])
         await api._request_json("GET", "device")
         api.refresh_token.assert_awaited_once()
+
+    async def test_refresh_keeps_session_and_preserves_error_category(self) -> None:
+        session = FakeSession({})
+        api = KerblIOTApi("test@example.com", "password")
+        api._session = session  # type: ignore[assignment]
+        api._access_token = "access"
+        api._refresh_token = "refresh"
+
+        session.errors.append(aiohttp.ClientConnectionError())
+        with self.assertRaises(KerblConnectionError):
+            await api.refresh_token()
+        self.assertIs(api._session, session)
+        self.assertFalse(session.closed)
+
+        session.errors.append(ValueError("bad json"))
+        with self.assertRaises(KerblProtocolError):
+            await api.refresh_token()
+        self.assertIs(api._session, session)
+        self.assertFalse(session.closed)
+
+        session.errors.append(aiohttp.ClientResponseError(None, (), status=401))
+        with self.assertRaises(KerblAuthenticationError):
+            await api.refresh_token()
+        self.assertIs(api._session, session)
+        self.assertFalse(session.closed)
 
     async def test_protocol_and_unauthorized_errors(self) -> None:
         api = KerblIOTApi("test@example.com", "password")

@@ -132,11 +132,8 @@ class KerblIOTApi:
                     refresh_on_unauthorized=False,
                 )
                 self._set_authentication(authentication)
-            except Exception as error:
-                await self.close()
-                if isinstance(error, KerblAuthenticationError):
-                    raise
-                raise KerblAuthenticationError("Kerbl token refresh failed.") from error
+            except (KerblAuthenticationError, KerblConnectionError, KerblProtocolError):
+                raise
 
     def get_tokens(self) -> tuple[str, str]:
         """Return the access and refresh tokens for persistent storage."""
@@ -181,7 +178,9 @@ class KerblIOTApi:
                 return await self._request_json(
                     method, endpoint, payload, refresh_on_unauthorized=False
                 )
-            raise KerblAuthenticationError("Kerbl rejected the request.") from error
+            if error.status == 401:
+                raise KerblAuthenticationError("Kerbl rejected the request.") from error
+            raise KerblConnectionError("Kerbl IoT service returned an HTTP error.") from error
         except (aiohttp.ClientError, asyncio.TimeoutError) as error:
             raise KerblConnectionError("Kerbl IoT service could not be reached.") from error
         except (TypeError, ValueError) as error:
