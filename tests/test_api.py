@@ -16,14 +16,19 @@ from kerbl_iot import (
 
 
 class FakeResponse:
-    def __init__(self, payload: dict[str, Any]) -> None:
+    def __init__(self, payload: dict[str, Any], status: int = 200) -> None:
         self._payload = payload
+        self.status = status
 
     async def __aenter__(self) -> "FakeResponse":
         return self
 
     async def __aexit__(self, *args: object) -> None:
         return None
+
+    def raise_for_status(self) -> None:
+        if self.status >= 400:
+            raise aiohttp.ClientResponseError(None, (), status=self.status)  # type: ignore[arg-type]
 
     async def json(self) -> dict[str, Any]:
         return self._payload
@@ -36,12 +41,17 @@ class FakeSession:
         self.request_args: list[tuple[str, str, dict[str, Any] | None]] = []
         self.closed = False
         self.errors: list[Exception] = []
+        # Statuses for responses returned *normally* (not raised), mirroring
+        # real aiohttp: a 401/500/... is a response, not an exception, until
+        # something explicitly calls response.raise_for_status().
+        self.statuses: list[int] = []
 
     def request(self, method: str, endpoint: str, *, json: dict[str, Any] | None) -> FakeResponse:
         if self.errors:
             raise self.errors.pop(0)
         self.request_args.append((method, endpoint, json))
-        return FakeResponse(self.payload)
+        status = self.statuses.pop(0) if self.statuses else 200
+        return FakeResponse(self.payload, status=status)
 
     async def close(self) -> None:
         self.closed = True
@@ -182,7 +192,7 @@ class KerblIOTApiTest(unittest.IsolatedAsyncioTestCase):
         api._access_token = "access"
         api._refresh_token = "refresh"
         api.refresh_token = unittest.mock.AsyncMock()
-        api._session.errors.extend([aiohttp.ClientResponseError(None, (), status=401)])
+        api._session.statuses.append(401)
         await api._request_json("GET", "device")
         api.refresh_token.assert_awaited_once()
 
@@ -190,10 +200,35 @@ class KerblIOTApiTest(unittest.IsolatedAsyncioTestCase):
         api = KerblIOTApi("test@example.com", "password")
         session = FakeSession({})
         api._session = session  # type: ignore[assignment]
-        session.errors.append(aiohttp.ClientResponseError(None, (), status=503))
+        session.statuses.append(503)
 
         with self.assertRaises(KerblConnectionError):
             await api._request_json("GET", "device")
+
+    async def test_provided_session_401_still_triggers_refresh(self) -> None:
+        """A 401 on a caller-supplied session (no raise_for_status) must still refresh.
+
+        Regression test: refresh-on-401 used to work only because the
+        internally created session set ``raise_for_status=True``. A session
+        supplied by the caller via ``session=`` never got that flag, so a
+        401 response with a parseable JSON body (e.g. ``{"message": ...}``)
+        was silently treated as valid data instead of triggering a token
+        refresh.
+        """
+        session = FakeSession({"message": "unauthorized"})
+        api = KerblIOTApi(
+            "test@example.com",
+            "password",
+            session=session,  # type: ignore[arg-type]
+        )
+        api._access_token = "access"
+        api._refresh_token = "refresh"
+        api.refresh_token = unittest.mock.AsyncMock()
+        session.statuses.append(401)
+
+        await api._request_json("GET", "device")
+
+        api.refresh_token.assert_awaited_once()
 
     async def test_refresh_keeps_session_and_preserves_error_category(self) -> None:
         session = FakeSession({})
@@ -214,7 +249,7 @@ class KerblIOTApiTest(unittest.IsolatedAsyncioTestCase):
         self.assertIs(api._session, session)
         self.assertFalse(session.closed)
 
-        session.errors.append(aiohttp.ClientResponseError(None, (), status=401))
+        session.statuses.append(401)
         with self.assertRaises(KerblAuthenticationError):
             await api.refresh_token()
         self.assertIs(api._session, session)
@@ -227,7 +262,7 @@ class KerblIOTApiTest(unittest.IsolatedAsyncioTestCase):
         session.errors.append(ValueError("bad json"))
         with self.assertRaises(Exception):
             await api._request_json("GET", "device")
-        session.errors.append(aiohttp.ClientResponseError(None, (), status=401))
+        session.statuses.append(401)
         with self.assertRaises(KerblAuthenticationError):
             await api._request_json("GET", "device", refresh_on_unauthorized=False)
 

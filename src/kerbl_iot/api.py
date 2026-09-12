@@ -143,7 +143,9 @@ class KerblIOTApi:
             base_url=BASE_URL,
             headers={"Accept": "application/json"},
             timeout=aiohttp.ClientTimeout(total=self._timeout),
-            raise_for_status=True,
+            # Deliberately no raise_for_status=True: _request_json() checks
+            # response.status itself, so behaviour is identical whether this
+            # session is owned or supplied by the caller via `session=`.
         )
         self._session_owned = True
 
@@ -176,20 +178,30 @@ class KerblIOTApi:
         *,
         refresh_on_unauthorized: bool = True,
     ) -> dict[str, Any]:
-        """Send one JSON request and refresh the access token once after a 401."""
+        """Send one JSON request and refresh the access token once after a 401.
+
+        The response status is checked explicitly instead of relying on a
+        session-level ``raise_for_status`` setting (deliberately not set in
+        ``_ensure_session``): that way this behaves identically whether the
+        session was created by this client or supplied by the caller via
+        ``session=``. Relying on ``raise_for_status`` would silently skip
+        401 handling -- and treat the error body as valid data -- for any
+        session that didn't happen to have it enabled.
+        """
         session = self._require_session()
         request_url = endpoint if self._provided_session is None else f"{BASE_URL}{endpoint}"
         try:
             async with session.request(method, request_url, json=payload) as response:
+                if response.status == 401:
+                    if refresh_on_unauthorized:
+                        await self.refresh_token()
+                        return await self._request_json(
+                            method, endpoint, payload, refresh_on_unauthorized=False
+                        )
+                    raise KerblAuthenticationError("Kerbl rejected the request.")
+                response.raise_for_status()
                 return await response.json()
         except aiohttp.ClientResponseError as error:
-            if error.status == 401 and refresh_on_unauthorized:
-                await self.refresh_token()
-                return await self._request_json(
-                    method, endpoint, payload, refresh_on_unauthorized=False
-                )
-            if error.status == 401:
-                raise KerblAuthenticationError("Kerbl rejected the request.") from error
             raise KerblConnectionError("Kerbl IoT service returned an HTTP error.") from error
         except (TimeoutError, aiohttp.ClientError) as error:
             raise KerblConnectionError("Kerbl IoT service could not be reached.") from error
