@@ -39,6 +39,10 @@ class FakeSession:
         self.payload = payload
         self.headers: dict[str, str] = {}
         self.request_args: list[tuple[str, str, dict[str, Any] | None]] = []
+        # Per-request headers, tracked separately from request_args so
+        # existing assertions that compare request_args as a plain 3-tuple
+        # don't need to change shape.
+        self.request_headers: list[dict[str, str] | None] = []
         self.closed = False
         self.errors: list[Exception] = []
         # Statuses for responses returned *normally* (not raised), mirroring
@@ -46,10 +50,18 @@ class FakeSession:
         # something explicitly calls response.raise_for_status().
         self.statuses: list[int] = []
 
-    def request(self, method: str, endpoint: str, *, json: dict[str, Any] | None) -> FakeResponse:
+    def request(
+        self,
+        method: str,
+        endpoint: str,
+        *,
+        json: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> FakeResponse:
         if self.errors:
             raise self.errors.pop(0)
         self.request_args.append((method, endpoint, json))
+        self.request_headers.append(headers)
         status = self.statuses.pop(0) if self.statuses else 200
         return FakeResponse(self.payload, status=status)
 
@@ -98,7 +110,7 @@ class KerblIOTApiTest(unittest.IsolatedAsyncioTestCase):
             await api.login()
 
         client_session.assert_not_called()
-        self.assertEqual(session.headers["Authorization"], "Bearer access")
+        self.assertEqual(api.get_tokens(), ("access", "refresh"))
         self.assertEqual(
             session.request_args[0][1], "https://app.kerbl-iot.com/api/v0.1/auth/sign-in"
         )
@@ -154,7 +166,7 @@ class KerblIOTApiTest(unittest.IsolatedAsyncioTestCase):
         restored_api.restore_tokens(*tokens)
 
         self.assertEqual(tokens, ("access", "refresh"))
-        self.assertEqual(restored_session.headers["Authorization"], "Bearer access")
+        self.assertEqual(restored_api.get_tokens(), ("access", "refresh"))
         await restored_api.refresh_token()
         self.assertEqual(restored_api.get_tokens(), ("new-access", "new-refresh"))
 
@@ -166,7 +178,7 @@ class KerblIOTApiTest(unittest.IsolatedAsyncioTestCase):
             api.restore_tokens("access", "refresh")
 
         client_session.assert_called_once()
-        self.assertEqual(session.headers["Authorization"], "Bearer access")
+        self.assertEqual(api.get_tokens(), ("access", "refresh"))
         self.assertEqual(session.request_args, [])
         await api.close()
         self.assertTrue(session.closed)
@@ -229,6 +241,46 @@ class KerblIOTApiTest(unittest.IsolatedAsyncioTestCase):
         await api._request_json("GET", "device")
 
         api.refresh_token.assert_awaited_once()
+
+    async def test_shared_session_keeps_tokens_isolated_per_instance(self) -> None:
+        """Two accounts sharing one aiohttp session must not clobber tokens.
+
+        Regression test: the bearer token used to be written to
+        ``session.headers``, so two ``KerblIOTApi`` instances (e.g. two
+        Kerbl accounts sharing a host application's HTTP session) would
+        each overwrite the other's Authorization header on that session --
+        and every other request made through it would carry whichever
+        token was set last.
+        """
+        shared_session = FakeSession({"smartCoop": []})
+        first = KerblIOTApi(
+            "first@example.com",
+            "password",
+            session=shared_session,  # type: ignore[arg-type]
+        )
+        second = KerblIOTApi(
+            "second@example.com",
+            "password",
+            session=shared_session,  # type: ignore[arg-type]
+        )
+        first._access_token = "first-token"
+        first._refresh_token = "first-refresh"
+        second._access_token = "second-token"
+        second._refresh_token = "second-refresh"
+
+        await second.get_smart_coops()
+        await first.get_smart_coops()
+
+        # The shared session's own headers were never touched by either
+        # instance -- only the per-request headers below carry a token.
+        self.assertNotIn("Authorization", shared_session.headers)
+        self.assertEqual(
+            shared_session.request_headers,
+            [
+                {"Authorization": "Bearer second-token"},
+                {"Authorization": "Bearer first-token"},
+            ],
+        )
 
     async def test_refresh_keeps_session_and_preserves_error_category(self) -> None:
         session = FakeSession({})
@@ -324,9 +376,10 @@ class KerblIOTApiTest(unittest.IsolatedAsyncioTestCase):
         session = FakeSession(
             {"smartCoop": [{"id": "coop-1", "userId": "user-1", "isOnline": True}]}
         )
-        session.headers["Authorization"] = "Bearer access"
         api = KerblIOTApi("test@example.com", "password")
         api._session = session  # type: ignore[assignment]
+        api._access_token = "access"
+        api._refresh_token = "refresh"
         smart_coop = (await api.get_smart_coops())[0]
         socket = FakeSocket()
 
@@ -343,9 +396,10 @@ class KerblIOTApiTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_socket_reconnection_options_are_forwarded(self) -> None:
         session = FakeSession({})
-        session.headers["Authorization"] = "Bearer access"
         api = KerblIOTApi("test@example.com", "password")
         api._session = session  # type: ignore[assignment]
+        api._access_token = "access"
+        api._refresh_token = "refresh"
         socket = FakeSocket()
 
         with patch("kerbl_iot.api.socketio.AsyncClient", return_value=socket) as client:
@@ -379,8 +433,9 @@ class KerblIOTApiTest(unittest.IsolatedAsyncioTestCase):
         await api.connect_websocket([])
         api._socket = None
         session = FakeSession({})
-        session.headers["Authorization"] = "Bearer access"
         api._session = session  # type: ignore[assignment]
+        api._access_token = "access"
+        api._refresh_token = "refresh"
         socket = FakeSocket()
         socket.connect = unittest.mock.AsyncMock(side_effect=socketio.exceptions.ConnectionError())
         coop = type("Coop", (), {"id": "coop-1", "user_id": "user-1"})()

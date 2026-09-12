@@ -168,7 +168,6 @@ class KerblIOTApi:
             raise KerblAuthenticationError("Kerbl response did not include a refresh token.")
         self._access_token = access_token
         self._refresh_token = refresh_token
-        self._require_session().headers["Authorization"] = f"Bearer {access_token}"
 
     async def _request_json(
         self,
@@ -187,11 +186,20 @@ class KerblIOTApi:
         ``session=``. Relying on ``raise_for_status`` would silently skip
         401 handling -- and treat the error body as valid data -- for any
         session that didn't happen to have it enabled.
+
+        The bearer token is likewise passed as a per-request header instead
+        of being stored on the session's default headers: a session shared
+        across accounts (or with an application's other HTTP traffic) would
+        otherwise have one account's token leak onto every other request
+        made through it.
         """
         session = self._require_session()
         request_url = endpoint if self._provided_session is None else f"{BASE_URL}{endpoint}"
+        headers = {"Authorization": f"Bearer {self._access_token}"} if self._access_token else None
         try:
-            async with session.request(method, request_url, json=payload) as response:
+            async with session.request(
+                method, request_url, json=payload, headers=headers
+            ) as response:
                 if response.status == 401:
                     if refresh_on_unauthorized:
                         await self.refresh_token()
@@ -254,7 +262,13 @@ class KerblIOTApi:
         reconnection_attempts: int = 0,
         reconnection_delay: float = 1.0,
     ) -> None:
-        """Connect to Socket.IO and subscribe to updates for all SmartCoops."""
+        """Connect to Socket.IO and subscribe to updates for all SmartCoops.
+
+        Reads the bearer token via ``get_tokens()`` rather than from the
+        session's headers, consistent with ``_request_json`` (see its
+        docstring) and raising ``KerblAuthenticationError`` -- instead of
+        an unhandled ``KeyError`` -- if called before authentication.
+        """
         if reconnection_attempts < 0:
             raise ValueError("reconnection_attempts must not be negative.")
         if reconnection_delay < 0:
@@ -265,7 +279,8 @@ class KerblIOTApi:
         if not smart_coops:
             return
 
-        session = self._require_session()
+        self._require_session()
+        access_token, _ = self.get_tokens()
         socket = socketio.AsyncClient(
             reconnection=True,
             reconnection_attempts=reconnection_attempts,
@@ -281,7 +296,7 @@ class KerblIOTApi:
             await socket.connect(
                 SOCKET_URL,
                 socketio_path=SOCKET_PATH,
-                headers={"Authorization": session.headers["Authorization"]},
+                headers={"Authorization": f"Bearer {access_token}"},
             )
             self._subscribed_device_ids = [coop.id for coop in smart_coops]
             self._socket_user_id = smart_coops[0].user_id
